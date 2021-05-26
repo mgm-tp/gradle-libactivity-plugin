@@ -1,0 +1,32 @@
+plugins {
+    id 'com.gradle.plugin-publish' version '0.14.0'
+    id 'java-gradle-plugin'
+    id 'groovy'
+}
+
+group 'com.mgmtp.gradle.libactivity.plugin'
+version '1.0.0'
+
+pluginBundle {
+    website = 'https://github.com/mgm-tp/gradle-libactivity-plugin'
+    vcsUrl = 'https://github.com/mgm-tp/gradle-libactivity-plugin.git'
+    tags = ['activity', 'libraries', 'dependency-analysis', 'maintained-security', 'reporting-tool']
+}
+
+gradlePlugin.plugins {
+    libActivityPlugin {
+        id = 'com.mgmtp.gradle-libactivity-plugin'
+        displayName = 'Lib Activity Plugin'
+        description = 'Checks if a library is still active, i.e. for a predefined age limit either the latest library release is not older than the limit or there are commits for that library on GitHub not older than the limit.'
+        implementationClass = 'com.mgmtp.gradle.libactivity.plugin.LibActivityPlugin'
+    }
+}
+
+repositories {
+    mavenCentral( )
+}
+
+dependencies {
+    implementation 'org.jsoup:jsoup:1.10.2'
+    testImplementation 'org.spockframework:spock-core:1.3-groovy-2.5'
+}
