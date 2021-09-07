@@ -1,6 +1,6 @@
 # Gradle Lib Activity Plugin
 
-This plugin checks whether libraries in your project are actively maintained. This allows you spot libraries that might become incompatible with your project or that pose a security risk (e.g. due to bugs that won't get fixed). Once you have recognized these vulnerable canidates you can take appropriate measures like deploying an alternate library of the same kind.
+This plugin checks whether libraries in your project are actively maintained. This allows you spot libraries that might become incompatible with your project or that pose a security risk (e.g. due to bugs that won't get fixed). Once you have recognized these vulnerable candidates you can take appropriate measures like deploying an alternate library of the same kind.
 
 ## Usage
 
