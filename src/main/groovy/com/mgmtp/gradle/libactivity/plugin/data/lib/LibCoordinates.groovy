@@ -6,7 +6,7 @@ import groovy.transform.TupleConstructor
 
 /** We use g:a:v string representation to sort coordinates. */
 @EqualsAndHashCode
-@TupleConstructor( post = { NullCheck.ALL_PROPS.call( this)})
+@TupleConstructor(post = { NullCheck.ALL_PROPS.call(this) })
 class LibCoordinates implements Comparable<LibCoordinates>, Serializable {
 
     final String groupId
@@ -16,12 +16,12 @@ class LibCoordinates implements Comparable<LibCoordinates>, Serializable {
     final String version
 
     @Override
-    int compareTo( LibCoordinates otherCoordinates) {
-        return toString( ) <=> otherCoordinates as String
+    int compareTo(LibCoordinates otherCoordinates) {
+        return toString() <=> otherCoordinates as String
     }
 
     @Override
-    String toString( ) {
-        return [groupId, artifactId, version].join( ':')
+    String toString() {
+        return [groupId, artifactId, version].join(':')
     }
 }

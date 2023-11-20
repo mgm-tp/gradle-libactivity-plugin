@@ -9,13 +9,13 @@ import org.gradle.api.Project
  */
 class LibActivityPlugin implements Plugin<Project> {
 
-	@Override
-	void apply( Project project) {
-		project.afterEvaluate {
-			project.tasks.register( 'checkLibActivity', CheckLibActivity.class) { CheckLibActivity checkLibActivity ->
-				checkLibActivity.group = 'checking'
-				checkLibActivity.description =  'Checks age of latest library release as well as age of current version in use'
-			}
-		}
-	}
+    @Override
+    void apply(Project project) {
+        project.afterEvaluate {
+            project.tasks.register('checkLibActivity', CheckLibActivity.class) { CheckLibActivity checkLibActivity ->
+                checkLibActivity.group = 'checking'
+                checkLibActivity.description = 'Checks age of latest library release as well as age of current version in use'
+            }
+        }
+    }
 }

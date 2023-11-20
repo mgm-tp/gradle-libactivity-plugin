@@ -8,16 +8,16 @@ import com.mgmtp.gradle.libactivity.plugin.result.writer.file.DefaultCheckResult
 class CheckResultDualWriter implements CheckResultFileWriter, CheckResultConsoleWriter {
 
     final CheckResultFileWriter fileWriter
-    final CheckResultConsoleWriter consoleWriter = new DefaultCheckResultConsoleWriter( )
+    final CheckResultConsoleWriter consoleWriter = new DefaultCheckResultConsoleWriter()
 
-    CheckResultDualWriter( File targetFile) {
-        Objects.requireNonNull( targetFile)
-        fileWriter = new DefaultCheckResultFileWriter( targetFile)
+    CheckResultDualWriter(File targetFile) {
+        Objects.requireNonNull(targetFile)
+        fileWriter = new DefaultCheckResultFileWriter(targetFile)
     }
 
     @Override
-    void write( String text) {
-        fileWriter.write( text)
-        consoleWriter.write( text)
+    void write(String text) {
+        fileWriter.write(text)
+        consoleWriter.write(text)
     }
 }

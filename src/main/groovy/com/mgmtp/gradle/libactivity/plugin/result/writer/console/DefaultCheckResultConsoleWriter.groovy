@@ -5,10 +5,10 @@ import org.gradle.api.logging.Logging
 
 class DefaultCheckResultConsoleWriter implements CheckResultConsoleWriter {
 
-    private static final Logger LOGGER = Logging.getLogger( DefaultCheckResultConsoleWriter.class)
+    private static final Logger LOGGER = Logging.getLogger(DefaultCheckResultConsoleWriter.class)
 
     @Override
-    void write( String text) {
-        LOGGER.quiet( text)
+    void write(String text) {
+        LOGGER.quiet(text)
     }
 }

@@ -6,7 +6,7 @@ import groovy.transform.options.Visibility
 
 /** Possible tags to define a check result. */
 @TupleConstructor
-@VisibilityOptions( Visibility.PRIVATE)
+@VisibilityOptions(Visibility.PRIVATE)
 enum LibTag {
 
     ACTIVE,

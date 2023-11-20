@@ -7,7 +7,7 @@ import groovy.transform.VisibilityOptions
 import groovy.transform.options.Visibility
 
 @TupleConstructor
-@VisibilityOptions( Visibility.PRIVATE)
+@VisibilityOptions(Visibility.PRIVATE)
 enum LibCheckResultGroupMeta {
 
     RELEASE_OK(
@@ -88,36 +88,36 @@ enum LibCheckResultGroupMeta {
     final boolean isGroupWithUniqueMembers
 
     @Override
-    String toString( ) {
-        return category.name + ( subCategory?.name ? ": ${ subCategory.name}" : '')
+    String toString() {
+        return category.name + (subCategory?.name ? ": ${subCategory.name}" : '')
     }
 
     @TupleConstructor
-    @VisibilityOptions( Visibility.PRIVATE)
+    @VisibilityOptions(Visibility.PRIVATE)
     enum Category {
 
-        ACTIVE( 'ACTIVE'),
-        INACTIVE( 'INACTIVE'),
-        UNAVAILABLE_RESULT( 'UNAVAILABLE RESULT'),
-        UNKNOWN( 'UNKNOWN'),
-        OUTDATED_VERSION( 'OUTDATED VERSION'),
-        UNKNOWN_VERSION( 'UNKNOWN VERSION')
+        ACTIVE('ACTIVE'),
+        INACTIVE('INACTIVE'),
+        UNAVAILABLE_RESULT('UNAVAILABLE RESULT'),
+        UNKNOWN('UNKNOWN'),
+        OUTDATED_VERSION('OUTDATED VERSION'),
+        UNKNOWN_VERSION('UNKNOWN VERSION')
 
         final String name
     }
 
     @TupleConstructor
-    @VisibilityOptions( Visibility.PRIVATE)
+    @VisibilityOptions(Visibility.PRIVATE)
     enum SubCategory {
 
-        RELEASE_OK( 'latest release within tolerance bounds'),
-        AT_LEAST_1_COMMIT( 'latest release outdated but at least 1 commit on GitHub'),
-        NO_GIT_HUB_COMMIT( 'no commit on GitHub'),
-        NO_GIT_HUB_HOSTING( 'not hosted on GitHub'),
-        MOVED( 'library coordinates moved'),
-        NO_GIT_HUB_MAPPING( 'no GitHub mapping'),
-        GIT_HUB_404( 'GitHub response NOT FOUND'),
-        GIT_HUB_403( 'GitHub response FORBIDDEN')
+        RELEASE_OK('latest release within tolerance bounds'),
+        AT_LEAST_1_COMMIT('latest release outdated but at least 1 commit on GitHub'),
+        NO_GIT_HUB_COMMIT('no commit on GitHub'),
+        NO_GIT_HUB_HOSTING('not hosted on GitHub'),
+        MOVED('library coordinates moved'),
+        NO_GIT_HUB_MAPPING('no GitHub mapping'),
+        GIT_HUB_404('GitHub response NOT FOUND'),
+        GIT_HUB_403('GitHub response FORBIDDEN')
 
         final String name
     }

@@ -25,34 +25,34 @@ import com.mgmtp.gradle.libactivity.plugin.result.data.AbstractCheckResultGroup
 abstract class AbstractPlainTextCheckResultFormatter<R extends AbstractCheckResult, G extends AbstractCheckResultGroup> implements PlainTextCheckResultFormatter<R> {
 
     @Override
-    String format( R checkResult) {
+    String format(R checkResult) {
         return checkResult.groups ?
-"""\
-${ getPlainTextCheckResultHeadline( checkResult.name)}
+                """\
+${getPlainTextCheckResultHeadline(checkResult.name)}
 
 
-${ getPlainTextFormattedGroups( checkResult.groups)}""" : ''
+${getPlainTextFormattedGroups(checkResult.groups)}""" : ''
     }
 
-    protected String getPlainTextCheckResultHeadline( String headline) {
-        return getPlainTextUnderlinedHeadline( headline, '*')
+    protected String getPlainTextCheckResultHeadline(String headline) {
+        return getPlainTextUnderlinedHeadline(headline, '*')
     }
 
-    protected String getPlainTextGroupHeadline( String headline) {
-        return getPlainTextUnderlinedHeadline( headline, '-')
+    protected String getPlainTextGroupHeadline(String headline) {
+        return getPlainTextUnderlinedHeadline(headline, '-')
     }
 
-    protected String getPlainTextUnderlinedHeadline( String headline, String underlineChar) {
-        return headline + System.lineSeparator( ) + underlineChar[0] * headline.length( )
+    protected String getPlainTextUnderlinedHeadline(String headline, String underlineChar) {
+        return headline + System.lineSeparator() + underlineChar[0] * headline.length()
     }
 
-    protected String getPlainTextFormattedGroups( Collection<G> groups) {
-        return groups.sort( ).collect { G group -> getPlainTextFormattedGroup( group)}.join( System.lineSeparator( ) * 2)
+    protected String getPlainTextFormattedGroups(Collection<G> groups) {
+        return groups.sort().collect { G group -> getPlainTextFormattedGroup(group) }.join(System.lineSeparator() * 2)
     }
 
-    protected String getPlainTextFormattedGroup( G group) {
-"""\
-${ getPlainTextGroupHeadline( "${group.members.size( )}x ${ group.meta}")}
-${ group.members.collect{ Object member -> member as String}.sort( ).join( System.lineSeparator( ))}"""
+    protected String getPlainTextFormattedGroup(G group) {
+        """\
+${getPlainTextGroupHeadline("${group.members.size()}x ${group.meta}")}
+${group.members.collect { Object member -> member as String }.sort().join(System.lineSeparator())}"""
     }
 }

@@ -7,7 +7,7 @@ import groovy.json.JsonBuilder
 class JsonLocalConfigCheckResultFormatter extends AbstractJsonCheckResultFormatter<LocalConfigCheckResult, LocalConfigCheckResultGroup> {
 
     @Override
-    JsonBuilder format( LocalConfigCheckResult checkResult) {
-        return super.format( checkResult)
+    JsonBuilder format(LocalConfigCheckResult checkResult) {
+        return super.format(checkResult)
     }
 }

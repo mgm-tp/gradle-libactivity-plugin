@@ -6,10 +6,10 @@ import groovy.transform.VisibilityOptions
 import groovy.transform.options.Visibility
 
 @TupleConstructor
-@VisibilityOptions( Visibility.PRIVATE)
+@VisibilityOptions(Visibility.PRIVATE)
 class FormattedCheckResultCollectorFactory {
 
-    static FormattedCheckResultCollector<?,?> getCollector( CheckResultOutputFormat outputFormat) {
-        return outputFormat.formattedCheckResultCollectorClazz.getDeclaredConstructor( ).newInstance( )
+    static FormattedCheckResultCollector<?, ?> getCollector(CheckResultOutputFormat outputFormat) {
+        return outputFormat.formattedCheckResultCollectorClazz.getDeclaredConstructor().newInstance()
     }
 }

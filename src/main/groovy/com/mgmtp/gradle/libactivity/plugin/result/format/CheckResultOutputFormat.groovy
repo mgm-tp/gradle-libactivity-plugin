@@ -9,16 +9,16 @@ import groovy.transform.options.Visibility
 
 /** There is a default collector to aggregate formatted check results into a total representation. */
 @TupleConstructor
-@VisibilityOptions( Visibility.PRIVATE)
+@VisibilityOptions(Visibility.PRIVATE)
 enum CheckResultOutputFormat {
 
-    TXT( PlainTextFormattedCheckResultCollector.class),
-    JSON( JsonFormattedCheckResultCollector.class)
+    TXT(PlainTextFormattedCheckResultCollector.class),
+    JSON(JsonFormattedCheckResultCollector.class)
 
-    final Class<FormattedCheckResultCollector<?,?>> formattedCheckResultCollectorClazz
+    final Class<FormattedCheckResultCollector<?, ?>> formattedCheckResultCollectorClazz
 
     static CheckResultOutputFormat parse(String format) {
-        return Optional.ofNullable( values( ).find { CheckResultOutputFormat writableFormat -> writableFormat.name( ).equalsIgnoreCase( format)})
-                .orElseThrow{ new IOException( "Invalid output format: ${ format} ---> Valid options: ${ values( )}")}
+        return Optional.ofNullable(values().find { CheckResultOutputFormat writableFormat -> writableFormat.name().equalsIgnoreCase(format) })
+                .orElseThrow { new IOException("Invalid output format: ${format} ---> Valid options: ${values()}") }
     }
 }

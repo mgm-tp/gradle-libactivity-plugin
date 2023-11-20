@@ -15,31 +15,31 @@ import groovy.transform.options.Visibility
  * </ul>
  */
 @EqualsAndHashCode
-@VisibilityOptions( Visibility.PRIVATE)
-@TupleConstructor( post = { NullCheck.ALL_PROPS.call( this)})
+@VisibilityOptions(Visibility.PRIVATE)
+@TupleConstructor(post = { NullCheck.ALL_PROPS.call(this) })
 class Lib implements Comparable<Lib> {
 
     final LibCoordinates coordinates
 
     final Collection<LibTag> tags
 
-    final Map<LibDetail,?> details
+    final Map<LibDetail, ?> details
 
     static Lib fromCoordinates(LibCoordinates coordinates) {
-        return new Lib( coordinates, [], [:])
+        return new Lib(coordinates, [], [:])
     }
 
-    String toGroupSlashArtifactString( ) {
+    String toGroupSlashArtifactString() {
         return coordinates.groupId + '/' + coordinates.artifactId
     }
 
     @Override
-    String toString( ) {
+    String toString() {
         return this.coordinates as String
     }
 
     @Override
-    int compareTo( Lib anotherLib) {
-        return toString( ) <=> anotherLib as String
+    int compareTo(Lib anotherLib) {
+        return toString() <=> anotherLib as String
     }
 }

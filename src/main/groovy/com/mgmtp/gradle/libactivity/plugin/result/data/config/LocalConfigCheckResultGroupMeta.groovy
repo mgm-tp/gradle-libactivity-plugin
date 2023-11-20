@@ -6,17 +6,17 @@ import groovy.transform.options.Visibility
 
 /** Meta info for local config check result. */
 @TupleConstructor
-@VisibilityOptions( Visibility.PRIVATE)
+@VisibilityOptions(Visibility.PRIVATE)
 enum LocalConfigCheckResultGroupMeta {
 
-    UNUSED_LOCAL_GIT_HUB_MAPPING_KEYS( 'unused local GitHub mapping keys'),
-    UNUSED_XCLUDES( 'unused xcludes'),
-    UNUSED_XCLUDE_PATTERNS( 'unused xclude patterns')
+    UNUSED_LOCAL_GIT_HUB_MAPPING_KEYS('unused local GitHub mapping keys'),
+    UNUSED_XCLUDES('unused xcludes'),
+    UNUSED_XCLUDE_PATTERNS('unused xclude patterns')
 
     final String name
 
     @Override
-    String toString( ) {
+    String toString() {
         return name
     }
 }
