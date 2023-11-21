@@ -7,21 +7,17 @@ import com.mgmtp.gradle.libactivity.plugin.data.lib.LibCoordinates
 import com.mgmtp.gradle.libactivity.plugin.logging.LazyLogger
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
-import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.Dependency
-import org.gradle.api.artifacts.DependencyConstraint
-import org.gradle.api.artifacts.ProjectDependency
+import org.gradle.api.artifacts.*
 import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependencyConstraint
 import org.gradle.api.tasks.*
 
 import java.time.LocalDate
-import java.util.stream.Collectors
 
 @CacheableTask
 class CheckLibActivity extends DefaultTask {
 
     @Input
-    final Collection<LibCoordinates> libCoordinates = collectCoordinatesFromTargetModuleAndSubmodules()
+    final Collection<LibCoordinates> libCoordinates = collectExternalLibCoordinatesFromTargetModuleAndSubmodules()
 
     @Input
     int maxAgeLatestReleaseInMonths = 12
@@ -90,29 +86,44 @@ class CheckLibActivity extends DefaultTask {
      * Collects dependencies + constraints from resolvable and non-resolvable configurations and turns them into {@link LibCoordinates}.
      * This is motivated by the fact that we care about dependencies consumed by us and about those we provide as consumables to others as well.
      * </p>
-     * Dependencies or constraints belonging to the project hierarchy will not be collected because usually they are not published to Maven Central.
+     * <p>
+     * Only external dependencies and constraints are taken into account. This is why project dependencies will not be collected. It is common that the task
+     * executor has influence on such internal dependencies and their active development.
+     * </p>
+     * <p>
+     * Returns a sorted list of library coordinates.
+     * </p>
      */
-    private Collection<LibCoordinates> collectCoordinatesFromTargetModuleAndSubmodules() {
+    private List<LibCoordinates> collectExternalLibCoordinatesFromTargetModuleAndSubmodules() {
 
-        return project.allprojects.stream()
-                .flatMap { Project project -> project.configurations.stream() }
-                .flatMap { Configuration configuration ->
-                    List<LibCoordinates> coordinates = configuration.dependencies
-                            .findAll { Dependency dependency -> !(dependency instanceof ProjectDependency) }
-                            .findAll { Dependency dependency -> [dependency.group, dependency.name, dependency.version].every { String coordinate -> coordinate } }
-                            .collect { Dependency dependency ->
-                                LOGGER.debug { "Collecting dependency '${dependency.group}:${dependency.name}:${dependency.version};${configuration.name}'" }
-                                new LibCoordinates(dependency.group, dependency.name, dependency.version)
-                            }
-                    coordinates.addAll(configuration.dependencyConstraints
-                            .findAll { DependencyConstraint constraint -> !(constraint instanceof DefaultProjectDependencyConstraint) }
-                            .findAll { DependencyConstraint constraint -> [constraint.group, constraint.name, constraint.version].every { String coordinate -> coordinate } }
-                            .collect { DependencyConstraint constraint ->
-                                LOGGER.debug { "Collecting dependency constraint '${constraint.module}:${constraint.versionConstraint};${configuration.name}'" }
-                                new LibCoordinates(constraint.group, constraint.name, constraint.version)
-                            })
-                    return coordinates.stream()
+        return project.allprojects.collect { Project project -> project.configurations }
+                .collect { ConfigurationContainer configurationContainer -> configurationContainer.getAsMap().values() }
+                .flatten()
+                .collect { Configuration configuration ->
+                    collectNonProjectDependencyCoordinates(configuration) + collectNonProjectDependencyConstraintCoordinates(configuration)
                 }
-                .collect(Collectors.toCollection { new TreeSet<LibCoordinates>() })
+                .flatten()
+                .unique()
+                .sort()
+    }
+
+    static List<LibCoordinates> collectNonProjectDependencyCoordinates(Configuration configuration) {
+
+        return configuration.dependencies
+                .findAll { Dependency dependency -> !(dependency instanceof ProjectDependency) }
+                .collect { Dependency dependency ->
+                    LOGGER.debug { "Collecting dependency '${dependency.group}:${dependency.name}:${dependency.version};${configuration.name}'" }
+                    new LibCoordinates(dependency.group, dependency.name, dependency.version)
+                }
+    }
+
+    static List<LibCoordinates> collectNonProjectDependencyConstraintCoordinates(Configuration configuration) {
+
+        return configuration.dependencyConstraints
+                .findAll { DependencyConstraint constraint -> !(constraint instanceof DefaultProjectDependencyConstraint) }
+                .collect { DependencyConstraint constraint ->
+                    LOGGER.debug { "Collecting dependency constraint '${constraint.module}:${constraint.versionConstraint};${configuration.name}'" }
+                    new LibCoordinates(constraint.group, constraint.name, constraint.version)
+                }
     }
 }
