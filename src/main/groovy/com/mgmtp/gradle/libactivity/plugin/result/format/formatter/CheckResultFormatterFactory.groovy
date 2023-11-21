@@ -17,12 +17,13 @@ import groovy.transform.options.Visibility
 class CheckResultFormatterFactory {
 
     static <F, R extends AbstractCheckResult> CheckResultFormatter<F, R> getFormatter(CheckResultOutputFormat outputFormat, Class<AbstractCheckResult> checkResultClazz) {
-        return CheckResultOutputFormatter.getImplementingClazz(outputFormat, checkResultClazz).getDeclaredConstructor().newInstance()
+        return CheckResultOutputFormatter.getMatchingImplementingClazz(outputFormat, checkResultClazz).getDeclaredConstructor().newInstance()
     }
 
     @TupleConstructor
     @VisibilityOptions(Visibility.PRIVATE)
     private static enum CheckResultOutputFormatter {
+
         JSON_LIB_CHECK_RESULT_FORMATTER(JsonLibCheckResultFormatter.class, CheckResultOutputFormat.JSON, LibCheckResult.class),
         JSON_LOCAL_CONFIG_CHECK_RESULT_FORMATTER(JsonLocalConfigCheckResultFormatter.class, CheckResultOutputFormat.JSON, LocalConfigCheckResult.class),
         PLAIN_TEXT_LIB_CHECK_RESULT_FORMATTER(PlainTextLibCheckResultFormatter.class, CheckResultOutputFormat.TXT, LibCheckResult.class),
@@ -32,7 +33,8 @@ class CheckResultFormatterFactory {
         CheckResultOutputFormat outputFormat
         Class<AbstractCheckResult> checkResultClazz
 
-        static Class<CheckResultFormatter> getImplementingClazz(CheckResultOutputFormat outputFormat, Class<AbstractCheckResult> checkResultClazz) {
+        private static Class<CheckResultFormatter> getMatchingImplementingClazz(CheckResultOutputFormat outputFormat, Class<AbstractCheckResult> checkResultClazz) {
+
             return Arrays.stream(values()).filter { CheckResultOutputFormatter outputFormatter ->
                 outputFormatter.outputFormat == outputFormat && outputFormatter.checkResultClazz == checkResultClazz
             }

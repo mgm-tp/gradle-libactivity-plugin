@@ -60,7 +60,7 @@ class CheckLibActivity extends DefaultTask {
     @OutputDirectory
     File outputDir = project.file('build/libactivity')
 
-    static final LazyLogger LOGGER = LazyLogger.fromClazz(CheckLibActivity.class)
+    private static final LazyLogger LOGGER = LazyLogger.fromClazz(CheckLibActivity.class)
 
     @TaskAction
     void checkLibActivity() {
@@ -92,7 +92,8 @@ class CheckLibActivity extends DefaultTask {
      * </p>
      * Dependencies or constraints belonging to the project hierarchy will not be collected because usually they are not published to Maven Central.
      */
-    Collection<LibCoordinates> collectCoordinatesFromTargetModuleAndSubmodules() {
+    private Collection<LibCoordinates> collectCoordinatesFromTargetModuleAndSubmodules() {
+
         return project.allprojects.stream()
                 .flatMap { Project project -> project.configurations.stream() }
                 .flatMap { Configuration configuration ->
