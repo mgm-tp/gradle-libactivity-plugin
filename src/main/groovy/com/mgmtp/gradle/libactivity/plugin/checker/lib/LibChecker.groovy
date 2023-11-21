@@ -43,8 +43,6 @@ class LibChecker {
         "Received invalid response '${responseCode}' when checking lib '${lib}' via URL: '${url}'."
     }
 
-    private static final Closure<String> GENERIC_ERROR_LOG = { String msg, Throwable cause -> "${msg} error: '${cause.getMessage()}'." }
-
     static LibChecker fromConfigBundle(GlobalConfig globalConfig, LocalConfig localConfig) {
         return new LibChecker(globalConfig, localConfig, LocalConfigChecker.fromLocalConfig(localConfig))
     }
@@ -116,8 +114,9 @@ class LibChecker {
             }
         } catch (HttpStatusException e) {
             tagLibBasedOnInvalidHttpResponse(lib, e)
-        } catch (IOException e) {
-            LOGGER.error { GENERIC_ERROR_LOG.call('Sonatype API', e) }
+        } catch (Exception e) {
+            // contribute additional log in case gradle task does not run with --stacktrace
+            LOGGER.error("Sonatype API request '${encodedUrl}' caused error", e)
             throw new IllegalStateException(e)
         }
     }
@@ -203,8 +202,8 @@ class LibChecker {
             }
         } catch (HttpStatusException e) {
             tagLibBasedOnInvalidHttpResponse(lib, e)
-        } catch (IOException e) {
-            LOGGER.error { GENERIC_ERROR_LOG.call('GitHub API', e) }
+        } catch (Exception e) {
+            LOGGER.error("GitHub API request '${encodedUrl}' caused error", e)
             throw new IllegalStateException(e)
         }
     }
@@ -222,7 +221,7 @@ class LibChecker {
         } catch (HttpStatusException e) {
             LOGGER.warn { GENERIC_INVALID_RESPONSE_LOG.call(e.statusCode, lib, encodedUrl) }
         } catch (Exception e) {
-            LOGGER.warn { "${GENERIC_ERROR_LOG.call('MvnRepository', e)} URL: '${encodedUrl}'." }
+            LOGGER.warn("MvnRepository request '${encodedUrl}' caused error", e)
         }
     }
 
@@ -260,7 +259,7 @@ class LibChecker {
                     break
                 }
                 LOGGER.error { GENERIC_INVALID_RESPONSE_LOG.call(responseCode, lib, encodedUrl) }
-                throw new IllegalStateException(httpStatusException.getMessage())
+                throw new IllegalStateException(httpStatusException)
             case 404:
                 if (encodedUrl.contains('search.maven.org')) {
                     LOGGER.info { GENERIC_INVALID_RESPONSE_LOG.call(responseCode, lib, encodedUrl) }
@@ -272,7 +271,7 @@ class LibChecker {
                 break
             default:
                 LOGGER.error { GENERIC_INVALID_RESPONSE_LOG.call(responseCode, lib, encodedUrl) }
-                throw new IllegalStateException(httpStatusException.getMessage())
+                throw new IllegalStateException(httpStatusException)
         }
     }
 
@@ -284,7 +283,7 @@ class LibChecker {
         try {
             return new URI('https', authority, path, query, null).toASCIIString()
         } catch (URISyntaxException e) {
-            LOGGER.error { GENERIC_ERROR_LOG.call('URL construction', e) }
+            LOGGER.error('URL construction error', e)
             throw new IllegalStateException(e)
         }
     }
