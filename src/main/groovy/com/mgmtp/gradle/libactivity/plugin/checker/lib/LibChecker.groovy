@@ -18,6 +18,10 @@ import groovy.json.JsonSlurper
 import groovy.transform.TupleConstructor
 import groovy.transform.VisibilityOptions
 import groovy.transform.options.Visibility
+import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
 import org.jsoup.HttpStatusException
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
@@ -35,9 +39,13 @@ class LibChecker {
 
     final LocalConfigChecker localConfigChecker
 
+    private final OkHttpClient okHttpClient = new OkHttpClient()
+
+    private static final String HTTPS_SCHEME = 'https'
+
     private static final LazyLogger LOGGER = LazyLogger.fromClazz(LibChecker.class)
 
-    private static final Closure<String> GENERIC_REQUEST_LOG = { String url -> "Sending request: '${url}'." }
+    private static final Closure<String> GENERIC_REQUEST_LOG = { HttpUrl url -> "Sending request: '${url}'." }
 
     private static final Closure<String> GENERIC_INVALID_RESPONSE_LOG = { int responseCode, Lib lib, String url ->
         "Received invalid response '${responseCode}' when checking lib '${lib}' via URL: '${url}'."
@@ -93,12 +101,22 @@ class LibChecker {
     }
 
     private void tagLibViaSonatypeQuery(Lib lib) {
+
         LOGGER.info("Checking lib '{}' via Sonatype API.", lib)
-        String query = "q=g:\"${lib.coordinates.groupId}\"+AND+a:\"${lib.coordinates.artifactId}\"&core=gav&rows=100&wt=json"
-        String encodedUrl = encodeAsHttpsUrl('search.maven.org', '/solrsearch/select', query)
-        LOGGER.debug { GENERIC_REQUEST_LOG.call(encodedUrl) }
+        HttpUrl httpUrl = new HttpUrl.Builder()
+                .scheme(HTTPS_SCHEME)
+                .host('search.maven.org')
+                .addPathSegment('solrsearch')
+                .addPathSegment('select')
+                .addEncodedQueryParameter('q', "g:\"${lib.coordinates.groupId}\"+AND+a:\"${lib.coordinates.artifactId}\"")
+                .addQueryParameter('core', 'gav')
+                .addQueryParameter('rows', '100')
+                .addQueryParameter('wt', 'json')
+                .build()
+        LOGGER.debug { GENERIC_REQUEST_LOG.call(httpUrl) }
+
         try {
-            Object jsonObject = getConnectionContentAsJsonObject(encodedUrl)
+            Object jsonObject = getJsonResponseFromRequestToUrl(httpUrl)
             List<String> versions = jsonObject.response.docs.v
             List<Long> timestamps = jsonObject.response.docs.timestamp
             Map<String, Long> sonatypeQueryResult = [versions, timestamps].transpose()
@@ -116,7 +134,7 @@ class LibChecker {
             tagLibBasedOnInvalidHttpResponse(lib, e)
         } catch (Exception e) {
             // contribute additional log in case gradle task does not run with --stacktrace
-            LOGGER.error("Sonatype API request '${encodedUrl}' caused error", e)
+            LOGGER.error("Sonatype API request '${httpUrl}' caused error", e)
             throw new IllegalStateException(e)
         }
     }
@@ -157,7 +175,7 @@ class LibChecker {
      * If a local GitHub mapping is equal to a global one it will be reported redundant since there is no added value.
      */
     private void tagApparentlyInactiveLib(Lib lib) {
-        String gitHubMappingKey = lib.toGroupSlashArtifactString()
+        String gitHubMappingKey = lib.coordinates.groupId + '/' + lib.coordinates.artifactId
         Optional<String> localMappedLibNameOpt = Optional.ofNullable(localConfig.localGitHubMappings[gitHubMappingKey])
         Optional<String> globalMappedLibNameOpt = Optional.ofNullable(globalConfig.gitHubMappings[gitHubMappingKey])
         Optional<String> mappedLibNameOpt = localMappedLibNameOpt ?: globalMappedLibNameOpt
@@ -181,16 +199,27 @@ class LibChecker {
     }
 
     private void tagLibViaGitHubQuery(Lib lib, String mappedLibName) {
+
         LOGGER.info("Checking commits for apparantly inactive lib '{}' on GitHub.", lib)
         String[] mappedFragments = mappedLibName.split(':')
         LocalDate earliestPossibleLatestReleaseDate = globalConfig.startOfCheckDate.minusMonths(localConfig.maxAgeLatestReleaseInMonths)
-        String gitHubPath = mappedFragments.length > 1 ? ("&path=${mappedFragments[1]}") : ''
-        String query = "since=${earliestPossibleLatestReleaseDate}T00:00:00Z${gitHubPath}"
-        String encodedUrl = encodeAsHttpsUrl('api.github.com', "/repos/${mappedFragments[0]}/commits", query)
+        HttpUrl.Builder httpUrlBuilder = new HttpUrl.Builder()
+                .scheme(HTTPS_SCHEME)
+                .host('api.github.com')
+                .addPathSegment('repos')
+                .addPathSegment(mappedFragments[0])
+                .addPathSegment('commits')
+                .addEncodedQueryParameter('since', "${earliestPossibleLatestReleaseDate}T00:00:00Z")
+        if (mappedFragments.length > 1) {
+            httpUrlBuilder.addQueryParameter('path', mappedFragments[1])
+        }
+        HttpUrl httpUrl = httpUrlBuilder.build()
+        LOGGER.debug { GENERIC_REQUEST_LOG.call(httpUrl) }
+
         Map<String, String> gitHubAuthorizationHeader = localConfig.gitHubOauthToken ? ['Authorization': "token ${localConfig.gitHubOauthToken}"] : [:]
-        LOGGER.debug { GENERIC_REQUEST_LOG.call(encodedUrl) }
+
         try {
-            int numCommitsInTimeFrame = getConnectionContentAsJsonObject(encodedUrl, gitHubAuthorizationHeader).size()
+            int numCommitsInTimeFrame = getJsonResponseFromRequestToUrl(httpUrl, gitHubAuthorizationHeader).size()
             if (numCommitsInTimeFrame > 0) {
                 LOGGER.info("Found {} commits for '{}' on GitHub.", numCommitsInTimeFrame, lib)
                 lib.tags.addAll(LibTag.ACTIVE, LibTag.AT_LEAST_1_COMMIT)
@@ -203,25 +232,33 @@ class LibChecker {
         } catch (HttpStatusException e) {
             tagLibBasedOnInvalidHttpResponse(lib, e)
         } catch (Exception e) {
-            LOGGER.error("GitHub API request '${encodedUrl}' caused error", e)
+            LOGGER.error("GitHub API request '${httpUrl}' caused error", e)
             throw new IllegalStateException(e)
         }
     }
 
     private static void tagLibViaMvnRepositoryQuery(Lib lib) {
+
         LOGGER.info("Checking move status for inactive '{}' via MvnRepository.", lib)
-        String encodedUrl = encodeAsHttpsUrl('mvnrepository.com', "/artifact/${lib.toGroupSlashArtifactString()}", null)
-        LOGGER.debug { GENERIC_REQUEST_LOG.call(encodedUrl) }
+        HttpUrl httpUrl = new HttpUrl.Builder()
+                .scheme(HTTPS_SCHEME)
+                .host('mvnrepository.com')
+                .addPathSegment('artifact')
+                .addPathSegment(lib.coordinates.groupId)
+                .addPathSegment(lib.coordinates.artifactId)
+                .build()
+        LOGGER.debug { GENERIC_REQUEST_LOG.call(httpUrl) }
+
         try {
-            getNewLibAddressViaMvnRepository(encodedUrl).ifPresent { newAddress ->
+            getNewLibAddressViaMvnRepository(httpUrl.toString()).ifPresent { newAddress ->
                 LOGGER.info("Lib '{}' moved to new address: '{}'.", lib, newAddress)
                 lib.tags.add(LibTag.MOVED)
                 lib.details.put(LibDetail.NEW_ADDRESS, newAddress)
             }
         } catch (HttpStatusException e) {
-            LOGGER.warn { GENERIC_INVALID_RESPONSE_LOG.call(e.statusCode, lib, encodedUrl) }
+            LOGGER.warn { GENERIC_INVALID_RESPONSE_LOG.call(e.statusCode, lib, httpUrl) }
         } catch (Exception e) {
-            LOGGER.warn("MvnRepository request '${encodedUrl}' caused error", e)
+            LOGGER.warn("MvnRepository request '${httpUrl}' caused error", e)
         }
     }
 
@@ -238,14 +275,29 @@ class LibChecker {
         return String.format(Locale.US, '%.1f', localDate.until(globalConfig.startOfCheckDate).toTotalMonths() / 12.0)
     }
 
-    /** No API call. Care must be taken not to get locked out. How would a normal user act? */
+    /**
+     * No API call. Care must be taken not to get locked out. A human user needs time to click.
+     * <p>
+     * If the artifact was moved then 2 links should appear in the corresponding section. The 1st one follows the group ID and the 2nd one the artifact ID.
+     * We assume the last link is most useful. Links are relative / start with a slash.
+     * </p>
+     */
     private static Optional<String> getNewLibAddressViaMvnRepository(String url) {
+
         Thread.sleep(ThreadLocalRandom.current().nextInt(1000, 4001))
         List<String> newLinks = Jsoup.connect(url).userAgent('Mozilla').get().getElementsContainingOwnText('artifact was moved')
                 .collect { Element element -> element.getElementsByTag('a') }.flatten()
                 .collect { Object element -> ((Element) element).attr('href') }
                 .findAll { String newLink -> newLink }
-        return (newLinks ? Optional.of("https://mvnrepository.com${newLinks.last()}") : Optional.empty()) as Optional<String>
+
+        if (newLinks) {
+            HttpUrl.Builder httpUrlBuilder = new HttpUrl.Builder()
+                    .scheme(HTTPS_SCHEME)
+                    .host('mvnrepository.com')
+                    .encodedPath(newLinks.last())
+            return Optional.of(httpUrlBuilder.build().toString())
+        }
+        return Optional.empty()
     }
 
     private static void tagLibBasedOnInvalidHttpResponse(Lib lib, HttpStatusException httpStatusException) {
@@ -279,28 +331,23 @@ class LibChecker {
         return LocalDate.ofEpochDay(Long.divideUnsigned(unixMillis, 86400000L))
     }
 
-    private static String encodeAsHttpsUrl(String authority, String path, String query) {
-        try {
-            return new URI('https', authority, path, query, null).toASCIIString()
-        } catch (URISyntaxException e) {
-            LOGGER.error('URL construction error', e)
-            throw new IllegalStateException(e)
-        }
+    private Object getJsonResponseFromRequestToUrl(HttpUrl httpUrl) {
+        return getJsonResponseFromRequestToUrl(httpUrl, [:])
     }
 
-    private static Object getConnectionContentAsJsonObject(String encodedUrl) {
-        return getConnectionContentAsJsonObject(encodedUrl, [:])
-    }
+    private Object getJsonResponseFromRequestToUrl(HttpUrl httpUrl, Map<String, String> requestHeaderParams) {
 
-    private static Object getConnectionContentAsJsonObject(String encodedUrl, Map<String, String> requestHeaderParams) {
-        HttpURLConnection connection = (HttpURLConnection) new URL(encodedUrl).openConnection()
-        requestHeaderParams.forEach { String key, String value -> connection.setRequestProperty(key, value) }
-        connection.connect()
-        int responseCode = connection.responseCode
-        if (responseCode != 200) {
-            throw new HttpStatusException("Request '${encodedUrl}' received invalid response ${responseCode}", responseCode, encodedUrl)
+        Request.Builder requestBuilder = new Request.Builder().url(httpUrl)
+        requestHeaderParams.forEach { String key, String value -> requestBuilder.addHeader(key, value) }
+
+        try (Response response = okHttpClient.newCall(requestBuilder.build()).execute()) {
+
+            int responseCode = response.code()
+            if (responseCode != 200) {
+                throw new HttpStatusException("Request '${httpUrl}' received invalid response ${responseCode}", responseCode, httpUrl.toString())
+            }
+            return new JsonSlurper().parse(response.body().byteStream())
         }
-        return ((InputStream) connection.getContent()).withCloseable { InputStream inputStream -> new JsonSlurper().parse(inputStream) }
     }
 
     private static List<AbstractCheckResult> collectNonEmptyCheckResults(AbstractCheckResult... checkResults) {

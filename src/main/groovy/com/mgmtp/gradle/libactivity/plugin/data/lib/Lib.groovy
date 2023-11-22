@@ -29,10 +29,6 @@ class Lib implements Comparable<Lib> {
         return new Lib(coordinates, [], [:])
     }
 
-    String toGroupSlashArtifactString() {
-        return coordinates.groupId + '/' + coordinates.artifactId
-    }
-
     @Override
     String toString() {
         return this.coordinates as String
