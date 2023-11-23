@@ -5,8 +5,4 @@ import com.mgmtp.gradle.libactivity.plugin.result.data.config.LocalConfigCheckRe
 
 class PlainTextLocalConfigCheckResultFormatter extends AbstractPlainTextCheckResultFormatter<LocalConfigCheckResult, LocalConfigCheckResultGroup> {
 
-    @Override
-    String format(LocalConfigCheckResult checkResult) {
-        return super.format(checkResult)
-    }
 }

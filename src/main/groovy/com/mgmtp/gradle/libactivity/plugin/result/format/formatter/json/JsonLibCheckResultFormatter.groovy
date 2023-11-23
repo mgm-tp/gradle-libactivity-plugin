@@ -8,11 +8,6 @@ import groovy.json.JsonBuilder
 class JsonLibCheckResultFormatter extends AbstractJsonCheckResultFormatter<LibCheckResult, LibCheckResultGroup> {
 
     @Override
-    JsonBuilder format(LibCheckResult checkResult) {
-        return super.format(checkResult)
-    }
-
-    @Override
     JsonBuilder getJsonFormattedGroup(LibCheckResultGroup group) {
         return new JsonBuilder(
                 category: group.meta.category.name,
