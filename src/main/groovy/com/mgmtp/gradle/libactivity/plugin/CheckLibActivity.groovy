@@ -3,7 +3,7 @@ package com.mgmtp.gradle.libactivity.plugin
 import com.mgmtp.gradle.libactivity.plugin.checker.lib.LibChecker
 import com.mgmtp.gradle.libactivity.plugin.config.GlobalConfig
 import com.mgmtp.gradle.libactivity.plugin.config.LocalConfig
-import com.mgmtp.gradle.libactivity.plugin.data.lib.LibCoordinates
+import com.mgmtp.gradle.libactivity.plugin.data.lib.MavenIdentifier
 import com.mgmtp.gradle.libactivity.plugin.logging.LazyLogger
 import com.mgmtp.gradle.libactivity.plugin.result.format.CheckResultOutputFormat
 import com.mgmtp.gradle.libactivity.plugin.result.writer.CheckResultOutputChannel
@@ -19,7 +19,7 @@ import java.time.LocalDate
 class CheckLibActivity extends DefaultTask {
 
     @Input
-    final Collection<LibCoordinates> libCoordinates = collectExternalLibCoordinatesFromTargetModuleAndSubmodules()
+    final Collection<MavenIdentifier> libMavenIdentifiers = collectExternalLibMavenIdentifiersFromTargetModuleAndSubmodules()
 
     @Input
     int maxAgeLatestReleaseInMonths = 12
@@ -63,7 +63,7 @@ class CheckLibActivity extends DefaultTask {
     @TaskAction
     void checkLibActivity() {
         LOGGER.info('Started task execution.')
-        LOGGER.info { "${libCoordinates.size()} libs collected from '${project.name}' + submodules during configuration phase." }
+        LOGGER.info { "${libMavenIdentifiers.size()} libs collected from '${project.name}' + submodules during configuration phase." }
         GlobalConfig globalConfig = GlobalConfig.builder()
                 .startOfCheckDate(startOfCheckDate)
                 .gitHubPropertiesPathRelativeToClasspath('/github/gitHubMappings.properties')
@@ -80,12 +80,12 @@ class CheckLibActivity extends DefaultTask {
                 .xcludes(xcludes)
                 .xcludePatterns(xcludePatterns)
                 .build()
-        LibChecker.fromConfigBundle(globalConfig, localConfig).checkLibCoordinates(libCoordinates)
+        LibChecker.fromConfigBundle(globalConfig, localConfig).checkLibMavenIdentifiers(libMavenIdentifiers)
     }
 
     /**
      * <p>
-     * Collects dependencies + constraints from resolvable and non-resolvable configurations and turns them into {@link LibCoordinates}.
+     * Collects dependencies + constraints from resolvable and non-resolvable configurations and turns them into {@link MavenIdentifier}.
      * This is motivated by the fact that we care about dependencies consumed by us and about those we provide as consumables to others as well.
      * </p>
      * <p>
@@ -93,39 +93,39 @@ class CheckLibActivity extends DefaultTask {
      * executor has influence on such internal dependencies and their active development.
      * </p>
      * <p>
-     * Returns a sorted list of library coordinates.
+     * Returns a sorted list of library Maven identifiers.
      * </p>
      */
-    private List<LibCoordinates> collectExternalLibCoordinatesFromTargetModuleAndSubmodules() {
+    private List<MavenIdentifier> collectExternalLibMavenIdentifiersFromTargetModuleAndSubmodules() {
 
         return project.allprojects.collect { Project project -> project.configurations }
                 .collect { ConfigurationContainer configurationContainer -> configurationContainer.getAsMap().values() }
                 .flatten()
                 .collect { Configuration configuration ->
-                    collectNonProjectDependencyCoordinates(configuration) + collectNonProjectDependencyConstraintCoordinates(configuration)
+                    collectNonProjectDependencyMavenIdentifiers(configuration) + collectNonProjectDependencyConstraintMavenIdentifiers(configuration)
                 }
                 .flatten()
                 .unique()
                 .sort()
     }
 
-    static List<LibCoordinates> collectNonProjectDependencyCoordinates(Configuration configuration) {
+    static List<MavenIdentifier> collectNonProjectDependencyMavenIdentifiers(Configuration configuration) {
 
         return configuration.dependencies
                 .findAll { Dependency dependency -> !(dependency instanceof ProjectDependency) }
                 .collect { Dependency dependency ->
                     LOGGER.debug { "Collecting dependency '${dependency.group}:${dependency.name}:${dependency.version};${configuration.name}'" }
-                    new LibCoordinates(dependency.group, dependency.name, dependency.version)
+                    new MavenIdentifier(dependency.group, dependency.name, dependency.version)
                 }
     }
 
-    static List<LibCoordinates> collectNonProjectDependencyConstraintCoordinates(Configuration configuration) {
+    static List<MavenIdentifier> collectNonProjectDependencyConstraintMavenIdentifiers(Configuration configuration) {
 
         return configuration.dependencyConstraints
                 .findAll { DependencyConstraint constraint -> !(constraint instanceof DefaultProjectDependencyConstraint) }
                 .collect { DependencyConstraint constraint ->
                     LOGGER.debug { "Collecting dependency constraint '${constraint.module}:${constraint.versionConstraint};${configuration.name}'" }
-                    new LibCoordinates(constraint.group, constraint.name, constraint.version)
+                    new MavenIdentifier(constraint.group, constraint.name, constraint.version)
                 }
     }
 }

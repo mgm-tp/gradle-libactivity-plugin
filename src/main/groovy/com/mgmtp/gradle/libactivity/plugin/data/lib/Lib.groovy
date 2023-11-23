@@ -9,7 +9,7 @@ import groovy.transform.options.Visibility
 /**
  * A lib consists of
  * <ul>
- *     <li>coordinate triple (gav)</li>
+ *     <li>Maven Identifier (coordinate GAV-triple)</li>
  *     <li>tags used to match a lib to a result group</li>
  *     <li>group specific details, each of them from one result group</li>
  * </ul>
@@ -19,23 +19,58 @@ import groovy.transform.options.Visibility
 @TupleConstructor(post = { NullCheck.ALL_PROPS.call(this) })
 class Lib implements Comparable<Lib> {
 
-    final LibCoordinates coordinates
+    final MavenIdentifier mavenIdentifier
 
-    final Collection<LibTag> tags
+    final Collection<Tag> tags
 
-    final Map<LibDetail, ?> details
+    final Map<Detail, ?> details
 
-    static Lib fromCoordinates(LibCoordinates coordinates) {
-        return new Lib(coordinates, [], [:])
+    static Lib fromMavenIdentifier(MavenIdentifier mavenIdentifier) {
+        return new Lib(mavenIdentifier, [], [:])
     }
 
     @Override
     String toString() {
-        return this.coordinates as String
+        return this.mavenIdentifier as String
     }
 
     @Override
     int compareTo(Lib anotherLib) {
         return toString() <=> anotherLib as String
+    }
+
+    /** Possible tags to define a check result. */
+    @TupleConstructor
+    @VisibilityOptions(Visibility.PRIVATE)
+    enum Tag {
+
+        ACTIVE,
+        GITHUB_RESPONSE_404,
+        AT_LEAST_1_COMMIT,
+        INACTIVE,
+        GITHUB_RESPONSE_403,
+        MOVED,
+        NO_COMMITS,
+        NO_GITHUB_MAPPING,
+        NO_GITHUB_HOSTING,
+        OUTDATED_VERSION,
+        OUTDATED_RELEASE,
+        RELEASE_OK,
+        UNAVAILABLE_RESULT,
+        UNKNOWN,
+        UNKNOWN_VERSION
+    }
+
+    /** Details allowed in a result group. */
+    @TupleConstructor
+    @VisibilityOptions(Visibility.PRIVATE)
+    enum Detail {
+
+        NUM_COMMITS('number of commits'),
+        LATEST_RELEASE_AGE('years since latest release'),
+        VERSION_AGE('version age in years'),
+        NEW_ADDRESS('new address')
+
+        final String description
     }
 }

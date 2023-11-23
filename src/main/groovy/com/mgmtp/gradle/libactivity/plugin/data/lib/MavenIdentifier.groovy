@@ -4,10 +4,10 @@ import com.mgmtp.gradle.libactivity.plugin.util.NullCheck
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.TupleConstructor
 
-/** We use g:a:v string representation to sort coordinates. */
+/** We use g:a:v string representation to sort libraries. */
 @EqualsAndHashCode
 @TupleConstructor(post = { NullCheck.ALL_PROPS.call(this) })
-class LibCoordinates implements Comparable<LibCoordinates>, Serializable {
+class MavenIdentifier implements Comparable<MavenIdentifier>, Serializable {
 
     final String groupId
 
@@ -16,8 +16,8 @@ class LibCoordinates implements Comparable<LibCoordinates>, Serializable {
     final String version
 
     @Override
-    int compareTo(LibCoordinates otherCoordinates) {
-        return toString() <=> otherCoordinates as String
+    int compareTo(MavenIdentifier otherIdentifier) {
+        return toString() <=> otherIdentifier as String
     }
 
     @Override

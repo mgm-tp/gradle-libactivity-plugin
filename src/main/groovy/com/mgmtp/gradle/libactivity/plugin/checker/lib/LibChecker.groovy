@@ -4,9 +4,7 @@ import com.mgmtp.gradle.libactivity.plugin.checker.config.LocalConfigChecker
 import com.mgmtp.gradle.libactivity.plugin.config.GlobalConfig
 import com.mgmtp.gradle.libactivity.plugin.config.LocalConfig
 import com.mgmtp.gradle.libactivity.plugin.data.lib.Lib
-import com.mgmtp.gradle.libactivity.plugin.data.lib.LibCoordinates
-import com.mgmtp.gradle.libactivity.plugin.data.lib.LibDetail
-import com.mgmtp.gradle.libactivity.plugin.data.lib.LibTag
+import com.mgmtp.gradle.libactivity.plugin.data.lib.MavenIdentifier
 import com.mgmtp.gradle.libactivity.plugin.logging.LazyLogger
 import com.mgmtp.gradle.libactivity.plugin.result.data.AbstractCheckResult
 import com.mgmtp.gradle.libactivity.plugin.result.data.lib.LibCheckResult
@@ -55,10 +53,11 @@ class LibChecker {
         return new LibChecker(globalConfig, localConfig, LocalConfigChecker.fromLocalConfig(localConfig))
     }
 
-    void checkLibCoordinates(Collection<LibCoordinates> libCoordinates) {
+    void checkLibMavenIdentifiers(Collection<MavenIdentifier> libMavenIdentifiers) {
         LOGGER.info('Starting lib check.')
-        LOGGER.info { "Checking if any of ${libCoordinates.size()} libs are meant to be xcluded." }
-        List<Lib> libs = libCoordinates.collect { LibCoordinates coordinates -> Lib.fromCoordinates(coordinates) }.findAll { Lib lib -> isNotXcludedLib(lib) }
+        LOGGER.info { "Checking if any of ${libMavenIdentifiers.size()} libs are meant to be xcluded." }
+        List<Lib> libs = libMavenIdentifiers.collect { MavenIdentifier mavenIdentifier -> Lib.fromMavenIdentifier(mavenIdentifier) }
+                .findAll { Lib lib -> isNotXcludedLib(lib) }
         LOGGER.info { "${libs.size()} libs passed xclusion filter." }
         libs.each { Lib lib -> tagLib(lib) }
         List<AbstractCheckResult> checkResults = collectNonEmptyCheckResults(LibCheckResult.fromTaggedLibs(libs), localConfigChecker.result)
@@ -71,7 +70,7 @@ class LibChecker {
 
     /** xcludes are check prior to xcludePatterns. */
     private boolean isNotXcludedLib(Lib lib) {
-        String groupArtifactTuple = lib.coordinates.groupId + ':' + lib.coordinates.artifactId
+        String groupArtifactTuple = lib.mavenIdentifier.groupId + ':' + lib.mavenIdentifier.artifactId
         Optional<String> matchedXcludePattern = Optional.empty()
         Optional<String> matchedXcludeItem = localConfig.xcludes.stream()
                 .filter { String xclude ->
@@ -95,7 +94,7 @@ class LibChecker {
     /** Tag every lib based on Sonatype response. If release outdated collect more tags. */
     private void tagLib(Lib lib) {
         tagLibViaSonatypeQuery(lib)
-        if (LibTag.OUTDATED_RELEASE in lib.tags) {
+        if (Lib.Tag.OUTDATED_RELEASE in lib.tags) {
             tagApparentlyInactiveLib(lib)
         }
     }
@@ -108,7 +107,7 @@ class LibChecker {
                 .host('search.maven.org')
                 .addPathSegment('solrsearch')
                 .addPathSegment('select')
-                .addEncodedQueryParameter('q', "g:\"${lib.coordinates.groupId}\"+AND+a:\"${lib.coordinates.artifactId}\"")
+                .addEncodedQueryParameter('q', "g:\"${lib.mavenIdentifier.groupId}\"+AND+a:\"${lib.mavenIdentifier.artifactId}\"")
                 .addQueryParameter('core', 'gav')
                 .addQueryParameter('rows', '100')
                 .addQueryParameter('wt', 'json')
@@ -124,7 +123,7 @@ class LibChecker {
                     .collectEntries { List<?> list -> [(list[0] as String): list[1] as Long] }
             if (!sonatypeQueryResult) {
                 LOGGER.info("Lib '{}' is unknown.", lib)
-                lib.tags.add(LibTag.UNKNOWN)
+                lib.tags.add(Lib.Tag.UNKNOWN)
             } else {
                 LOGGER.info("Checking current version age and latest release age for lib '{}'.", lib)
                 tagLibBasedOnCurrentVersionAge(lib, sonatypeQueryResult)
@@ -140,17 +139,17 @@ class LibChecker {
     }
 
     private void tagLibBasedOnCurrentVersionAge(Lib lib, Map<String, Long> sonatypeQueryResult) {
-        if (sonatypeQueryResult.containsKey(lib.coordinates.version)) {
+        if (sonatypeQueryResult.containsKey(lib.mavenIdentifier.version)) {
             LocalDate earliestPossibleVersionReleaseDate = globalConfig.startOfCheckDate.minusMonths(localConfig.maxAgeCurrentVersionInMonths)
-            LocalDate libVersionReleaseDate = getLocalDateFromUnixMillis(sonatypeQueryResult[lib.coordinates.version])
+            LocalDate libVersionReleaseDate = getLocalDateFromUnixMillis(sonatypeQueryResult[lib.mavenIdentifier.version])
             if (libVersionReleaseDate.isBefore(earliestPossibleVersionReleaseDate)) {
                 LOGGER.info("Lib '{}' has outdated version.", lib)
-                lib.tags.add(LibTag.OUTDATED_VERSION)
-                lib.details.put(LibDetail.VERSION_AGE, getFormattedYearsSince(libVersionReleaseDate))
+                lib.tags.add(Lib.Tag.OUTDATED_VERSION)
+                lib.details.put(Lib.Detail.VERSION_AGE, getFormattedYearsSince(libVersionReleaseDate))
             }
         } else {
             LOGGER.info("Lib '{}' has unknown version.", lib)
-            lib.tags.add(LibTag.UNKNOWN_VERSION)
+            lib.tags.add(Lib.Tag.UNKNOWN_VERSION)
         }
     }
 
@@ -159,11 +158,11 @@ class LibChecker {
         LocalDate earliestPossibleLatestReleaseDate = globalConfig.startOfCheckDate.minusMonths(localConfig.maxAgeLatestReleaseInMonths)
         if (latestReleaseDate.isBefore(earliestPossibleLatestReleaseDate)) {
             LOGGER.info("Lib '{}' has outdated release.", lib)
-            lib.tags.add(LibTag.OUTDATED_RELEASE)
-            lib.details.put(LibDetail.LATEST_RELEASE_AGE, getFormattedYearsSince(latestReleaseDate))
+            lib.tags.add(Lib.Tag.OUTDATED_RELEASE)
+            lib.details.put(Lib.Detail.LATEST_RELEASE_AGE, getFormattedYearsSince(latestReleaseDate))
         } else {
             LOGGER.info("Latest release of lib '{}' is OK.", lib)
-            lib.tags.addAll(LibTag.ACTIVE, LibTag.RELEASE_OK)
+            lib.tags.addAll(Lib.Tag.ACTIVE, Lib.Tag.RELEASE_OK)
         }
     }
 
@@ -175,19 +174,19 @@ class LibChecker {
      * If a local GitHub mapping is equal to a global one it will be reported redundant since there is no added value.
      */
     private void tagApparentlyInactiveLib(Lib lib) {
-        String gitHubMappingKey = lib.coordinates.groupId + '/' + lib.coordinates.artifactId
+        String gitHubMappingKey = lib.mavenIdentifier.groupId + '/' + lib.mavenIdentifier.artifactId
         Optional<String> localMappedLibNameOpt = Optional.ofNullable(localConfig.localGitHubMappings[gitHubMappingKey])
         Optional<String> globalMappedLibNameOpt = Optional.ofNullable(globalConfig.gitHubMappings[gitHubMappingKey])
         Optional<String> mappedLibNameOpt = localMappedLibNameOpt ?: globalMappedLibNameOpt
 
         if (!mappedLibNameOpt) {
             LOGGER.info("Cannot check lib '{}' on GitHub. No mapping available.", lib)
-            lib.tags.addAll(LibTag.UNAVAILABLE_RESULT, LibTag.NO_GITHUB_MAPPING)
+            lib.tags.addAll(Lib.Tag.UNAVAILABLE_RESULT, Lib.Tag.NO_GITHUB_MAPPING)
         } else {
             String mappedLibName = mappedLibNameOpt.get()
             if (!mappedLibName) {
                 LOGGER.info("Lib '{}' not hosted on GitHub.", lib)
-                lib.tags.addAll(LibTag.INACTIVE, LibTag.NO_GITHUB_HOSTING)
+                lib.tags.addAll(Lib.Tag.INACTIVE, Lib.Tag.NO_GITHUB_HOSTING)
                 tagLibViaMvnRepositoryQuery(lib)
             } else {
                 tagLibViaGitHubQuery(lib, mappedLibName)
@@ -222,11 +221,11 @@ class LibChecker {
             int numCommitsInTimeFrame = getJsonResponseFromRequestToUrl(httpUrl, gitHubAuthorizationHeader).size()
             if (numCommitsInTimeFrame > 0) {
                 LOGGER.info("Found {} commits for '{}' on GitHub.", numCommitsInTimeFrame, lib)
-                lib.tags.addAll(LibTag.ACTIVE, LibTag.AT_LEAST_1_COMMIT)
-                lib.details.put(LibDetail.NUM_COMMITS, numCommitsInTimeFrame)
+                lib.tags.addAll(Lib.Tag.ACTIVE, Lib.Tag.AT_LEAST_1_COMMIT)
+                lib.details.put(Lib.Detail.NUM_COMMITS, numCommitsInTimeFrame)
             } else {
                 LOGGER.info("No commits found for '{}' on GitHub.", lib)
-                lib.tags.addAll(LibTag.INACTIVE, LibTag.NO_COMMITS)
+                lib.tags.addAll(Lib.Tag.INACTIVE, Lib.Tag.NO_COMMITS)
                 tagLibViaMvnRepositoryQuery(lib)
             }
         } catch (HttpStatusException e) {
@@ -244,16 +243,16 @@ class LibChecker {
                 .scheme(HTTPS_SCHEME)
                 .host('mvnrepository.com')
                 .addPathSegment('artifact')
-                .addPathSegment(lib.coordinates.groupId)
-                .addPathSegment(lib.coordinates.artifactId)
+                .addPathSegment(lib.mavenIdentifier.groupId)
+                .addPathSegment(lib.mavenIdentifier.artifactId)
                 .build()
         LOGGER.debug { GENERIC_REQUEST_LOG.call(httpUrl) }
 
         try {
             getNewLibAddressViaMvnRepository(httpUrl.toString()).ifPresent { newAddress ->
                 LOGGER.info("Lib '{}' moved to new address: '{}'.", lib, newAddress)
-                lib.tags.add(LibTag.MOVED)
-                lib.details.put(LibDetail.NEW_ADDRESS, newAddress)
+                lib.tags.add(Lib.Tag.MOVED)
+                lib.details.put(Lib.Detail.NEW_ADDRESS, newAddress)
             }
         } catch (HttpStatusException e) {
             LOGGER.warn { GENERIC_INVALID_RESPONSE_LOG.call(e.statusCode, lib, httpUrl) }
@@ -307,7 +306,7 @@ class LibChecker {
             case 403:
                 if (encodedUrl.contains('api.github.com')) {
                     LOGGER.warn { GENERIC_INVALID_RESPONSE_LOG.call(responseCode, lib, encodedUrl) }
-                    lib.tags.addAll(LibTag.UNAVAILABLE_RESULT, LibTag.GITHUB_RESPONSE_403)
+                    lib.tags.addAll(Lib.Tag.UNAVAILABLE_RESULT, Lib.Tag.GITHUB_RESPONSE_403)
                     break
                 }
                 LOGGER.error { GENERIC_INVALID_RESPONSE_LOG.call(responseCode, lib, encodedUrl) }
@@ -315,10 +314,10 @@ class LibChecker {
             case 404:
                 if (encodedUrl.contains('search.maven.org')) {
                     LOGGER.info { GENERIC_INVALID_RESPONSE_LOG.call(responseCode, lib, encodedUrl) }
-                    lib.tags.add(LibTag.UNKNOWN)
+                    lib.tags.add(Lib.Tag.UNKNOWN)
                 } else {
                     LOGGER.warn { GENERIC_INVALID_RESPONSE_LOG.call(responseCode, lib, encodedUrl) }
-                    lib.tags.addAll(LibTag.UNAVAILABLE_RESULT, LibTag.GITHUB_RESPONSE_404)
+                    lib.tags.addAll(Lib.Tag.UNAVAILABLE_RESULT, Lib.Tag.GITHUB_RESPONSE_404)
                 }
                 break
             default:

@@ -1,7 +1,6 @@
 package com.mgmtp.gradle.libactivity.plugin.result.format.formatter.plaintext
 
 import com.mgmtp.gradle.libactivity.plugin.data.lib.Lib
-import com.mgmtp.gradle.libactivity.plugin.data.lib.LibDetail
 import com.mgmtp.gradle.libactivity.plugin.result.data.lib.LibCheckResult
 import com.mgmtp.gradle.libactivity.plugin.result.data.lib.LibCheckResultGroup
 
@@ -30,8 +29,8 @@ ${getPlainTextGroupHeadline(plainTextGroupName)}
 ${group.members.sort().collect { Lib lib -> lib.toString() + getDetailValueFromLib(lib, group.meta.detail) }.join(System.lineSeparator())}"""
     }
 
-    private static String getDetailValueFromLib(Lib lib, LibDetail groupDetail) {
-        String detailValue = lib.details.find { Map.Entry<LibDetail, ?> libDetail -> libDetail.key == groupDetail }?.value
+    private static String getDetailValueFromLib(Lib lib, Lib.Detail groupDetail) {
+        String detailValue = lib.details.find { Map.Entry<Lib.Detail, ?> libDetail -> libDetail.key == groupDetail }?.value
         return detailValue ? " (${detailValue})" : ''
     }
 }

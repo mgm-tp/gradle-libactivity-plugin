@@ -221,15 +221,15 @@ class LibActivityPluginFunctionalTest extends Specification {
         String consoleOutput = captureStdOutFromPlugin()
 
         then:
-        String expectedCoordinates = gavJsonStringFromGavPlainText(LIB_COMMONS_LANG_3)
+        String expectedMavenIdentifier = gavJsonStringFromGavPlainText(LIB_COMMONS_LANG_3)
 
         String strippedConsoleOutput = stripWhitespace(consoleOutput)
-        strippedConsoleOutput.contains(expectedCoordinates)
+        strippedConsoleOutput.contains(expectedMavenIdentifier)
         !strippedConsoleOutput.contains(LibCheckResultGroupMeta.UNKNOWN.category.name)
         !strippedConsoleOutput.contains(LibCheckResultGroupMeta.UNKNOWN_VERSION.category.name)
 
         String strippedFileOutput = getStrippedJsonResultFileContent()
-        strippedFileOutput.contains(expectedCoordinates)
+        strippedFileOutput.contains(expectedMavenIdentifier)
         !strippedFileOutput.contains(LibCheckResultGroupMeta.UNKNOWN.category.name)
         !strippedFileOutput.contains(LibCheckResultGroupMeta.UNKNOWN_VERSION.category.name)
     }
@@ -246,14 +246,14 @@ class LibActivityPluginFunctionalTest extends Specification {
         String consoleOutput = captureStdOutFromPlugin()
 
         then:
-        String expectedLogbackCoreCoordinates = gavJsonStringFromGavPlainText(LIB_LOGBACK_CORE)
-        String expectedLogbackClassicCoordinates = gavJsonStringFromGavPlainText(LIB_LOGBACK_CLASSIC)
-        !stripWhitespace(consoleOutput).contains(expectedLogbackCoreCoordinates)
-        !stripWhitespace(consoleOutput).contains(expectedLogbackClassicCoordinates)
+        String expectedLogbackCoreMavenIdentifier = gavJsonStringFromGavPlainText(LIB_LOGBACK_CORE)
+        String expectedLogbackClassicMavenIdentifier = gavJsonStringFromGavPlainText(LIB_LOGBACK_CLASSIC)
+        !stripWhitespace(consoleOutput).contains(expectedLogbackCoreMavenIdentifier)
+        !stripWhitespace(consoleOutput).contains(expectedLogbackClassicMavenIdentifier)
 
         String strippedFileOutput = getStrippedJsonResultFileContent()
-        strippedFileOutput.contains(expectedLogbackCoreCoordinates)
-        strippedFileOutput.contains(expectedLogbackClassicCoordinates)
+        strippedFileOutput.contains(expectedLogbackCoreMavenIdentifier)
+        strippedFileOutput.contains(expectedLogbackClassicMavenIdentifier)
         !strippedFileOutput.contains(LibCheckResultGroupMeta.UNKNOWN.category.name)
         !strippedFileOutput.contains(LibCheckResultGroupMeta.UNKNOWN_VERSION.category.name)
     }
@@ -386,7 +386,7 @@ class LibActivityPluginFunctionalTest extends Specification {
 
     private static String gavJsonStringFromGavPlainText(String gavPlainText) {
         String[] gavTriple = gavPlainText.split(':')
-        return new JsonBuilder(coordinates: new JsonBuilder(groupId: gavTriple[0], artifactId: gavTriple[1], version: gavTriple[2]).content)
+        return new JsonBuilder(mavenIdentifier: new JsonBuilder(groupId: gavTriple[0], artifactId: gavTriple[1], version: gavTriple[2]).content)
                 .toString()
                 .replaceAll('\\{(.*)}', '$1')
     }
