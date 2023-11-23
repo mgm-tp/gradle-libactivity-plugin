@@ -20,19 +20,20 @@ class GlobalConfig {
     private static final LazyLogger LOGGER = LazyLogger.fromClazz(GlobalConfig.class)
 
     private static Map<String, String> initGitHubMappings(String propertiesPathRelativeToClasspath) {
+
         Properties properties = new Properties()
+
         if (propertiesPathRelativeToClasspath) {
+
             LOGGER.info('Loading GitHub mapping properties from "classpath:{}"', propertiesPathRelativeToClasspath)
+
             try {
                 properties.load(GlobalConfig.class.getResourceAsStream(propertiesPathRelativeToClasspath))
-                if (!properties) {
-                    LOGGER.warn('Empty GitHub mapping properties.')
-                }
-            } catch (IOException e) {
-                LOGGER.warn { "Error reading GitHub mapping properties: ${e.getMessage()}." }
+            } catch (Exception e) {
+                LOGGER.warn('Error reading GitHub mapping properties', e)
             }
         }
-        return properties.collectEntries { Map.Entry<?, ?> entry -> [(entry.key): entry.value] } as Map<String, String>
+        return properties as Map<String, String>
     }
 
     static GlobalConfigBuilder builder() {
