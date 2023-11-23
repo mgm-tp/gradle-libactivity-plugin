@@ -5,6 +5,8 @@ import com.mgmtp.gradle.libactivity.plugin.config.GlobalConfig
 import com.mgmtp.gradle.libactivity.plugin.config.LocalConfig
 import com.mgmtp.gradle.libactivity.plugin.data.lib.LibCoordinates
 import com.mgmtp.gradle.libactivity.plugin.logging.LazyLogger
+import com.mgmtp.gradle.libactivity.plugin.result.format.CheckResultOutputFormat
+import com.mgmtp.gradle.libactivity.plugin.result.writer.CheckResultOutputChannel
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.artifacts.*
@@ -69,8 +71,8 @@ class CheckLibActivity extends DefaultTask {
         LocalConfig localConfig = LocalConfig.builder()
                 .maxAgeLatestReleaseInMonths(maxAgeLatestReleaseInMonths)
                 .maxAgeCurrentVersionInMonths(maxAgeCurrentVersionInMonths)
-                .outputFormat(outputFormat)
-                .outputChannel(outputChannel)
+                .outputFormat(CheckResultOutputFormat.parse(outputFormat))
+                .outputChannel(CheckResultOutputChannel.parse(outputChannel))
                 .outputDir(outputDir)
                 .outputFileName(outputFileName)
                 .gitHubOauthToken(gitHubOauthToken)

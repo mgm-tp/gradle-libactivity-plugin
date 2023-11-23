@@ -35,8 +35,8 @@ class LocalConfig {
     private LocalConfig(
             int maxAgeLatestReleaseInMonths,
             int maxAgeCurrentVersionInMonths,
-            String outputFormat,
-            String outputChannel,
+            CheckResultOutputFormat outputFormat,
+            CheckResultOutputChannel outputChannel,
             File outputDir,
             String outputFileName,
             String gitHubOauthToken,
@@ -53,8 +53,8 @@ class LocalConfig {
         LOGGER.info('Initializing local config.')
         this.maxAgeLatestReleaseInMonths = maxAgeLatestReleaseInMonths
         this.maxAgeCurrentVersionInMonths = maxAgeCurrentVersionInMonths
-        this.outputFormat = CheckResultOutputFormat.parse(outputFormat)
-        this.outputChannel = CheckResultOutputChannel.parse(outputChannel)
+        this.outputFormat = outputFormat
+        this.outputChannel = outputChannel
         this.outputFile = this.outputChannel == CheckResultOutputChannel.CONSOLE ? null : newBlankFile(outputDir, outputFileName, this.outputFormat)
         this.gitHubOauthToken = gitHubOauthToken
         this.localGitHubMappings = new HashMap<>(localGitHubMappings)
