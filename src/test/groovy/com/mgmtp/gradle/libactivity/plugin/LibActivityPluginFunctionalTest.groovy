@@ -41,9 +41,9 @@ class LibActivityPluginFunctionalTest extends Specification {
     }
 
     /**
-     * The activity status of libraries is typically inconsistent. What may be active today can be inactive
-     * in just a few months. To ensure long-term reproducible test results no classification of active / inactive
-     * will take place. Existing libraries must however be locatable, i.e.:
+     * The activity status of libraries can be short-lived. What may be active today can be inactive in just a few months.
+     * To ensure long-term reproducible test results no classification of active / inactive  will take place. Existing
+     * libraries must however be locatable, i.e.:
      * <ul>
      *     <li>be part of the check result</li>
      *     <li>not classified UNKNOWN</li>
@@ -55,21 +55,21 @@ class LibActivityPluginFunctionalTest extends Specification {
         setupTestProject(null, LIB_COMMONS_LANG_3)
 
         when:
-        String consoleOutput = captureStdOutFromPlugin()
+        String consoleOutput = captureStdOutFromTaskExecution()
 
         then:
         consoleOutput.contains(LIB_COMMONS_LANG_3)
 
-        String expectedUnknownGroup = getNormalizedResultGroup(PlainTextResultGroup.UNKNOWN.headline, LIB_COMMONS_LANG_3)
-        String expectedUnknownVersionGroup = getNormalizedResultGroup(PlainTextResultGroup.UNKNOWN_VERSION.headline, LIB_COMMONS_LANG_3)
+        String unknownGroup = getNormalizedResultGroup(PlainTextResultGroup.UNKNOWN.headline, LIB_COMMONS_LANG_3)
+        String unknownVersionGroup = getNormalizedResultGroup(PlainTextResultGroup.UNKNOWN_VERSION.headline, LIB_COMMONS_LANG_3)
 
         String normalizedConsoleOutput = consoleOutput.normalize()
-        !normalizedConsoleOutput.contains(expectedUnknownGroup)
-        !normalizedConsoleOutput.contains(expectedUnknownVersionGroup)
+        !normalizedConsoleOutput.contains(unknownGroup)
+        !normalizedConsoleOutput.contains(unknownVersionGroup)
 
         String normalizedFileOutput = getNormalizedPlainTextResultFileOutput()
-        !normalizedFileOutput.contains(expectedUnknownGroup)
-        !normalizedFileOutput.contains(expectedUnknownVersionGroup)
+        !normalizedFileOutput.contains(unknownGroup)
+        !normalizedFileOutput.contains(unknownVersionGroup)
     }
 
     /**
@@ -83,19 +83,19 @@ class LibActivityPluginFunctionalTest extends Specification {
         setupTestProject(null, lib_X_Y_Z, lib_A_B_C)
 
         when:
-        String consoleOutput = captureStdOutFromPlugin()
+        String consoleOutput = captureStdOutFromTaskExecution()
 
         then:
-        String expectedUnknownGroup = getNormalizedResultGroup(PlainTextResultGroup.UNKNOWN.headline, lib_A_B_C, lib_X_Y_Z)
-        String expectedUnknownVersionGroup = getNormalizedResultGroup(PlainTextResultGroup.UNKNOWN_VERSION.headline, lib_A_B_C, lib_X_Y_Z)
+        String unknownGroup = getNormalizedResultGroup(PlainTextResultGroup.UNKNOWN.headline, lib_A_B_C, lib_X_Y_Z)
+        String unknownVersionGroup = getNormalizedResultGroup(PlainTextResultGroup.UNKNOWN_VERSION.headline, lib_A_B_C, lib_X_Y_Z)
 
         String normalizedConsoleOutput = consoleOutput.normalize()
-        normalizedConsoleOutput.contains(expectedUnknownGroup)
-        !normalizedConsoleOutput.contains(expectedUnknownVersionGroup)
+        normalizedConsoleOutput.contains(unknownGroup)
+        !normalizedConsoleOutput.contains(unknownVersionGroup)
 
         String normalizedFileOutput = getNormalizedPlainTextResultFileOutput()
-        normalizedFileOutput.contains(expectedUnknownGroup)
-        !normalizedFileOutput.contains(expectedUnknownVersionGroup)
+        normalizedFileOutput.contains(unknownGroup)
+        !normalizedFileOutput.contains(unknownVersionGroup)
     }
 
     /**
@@ -109,19 +109,19 @@ class LibActivityPluginFunctionalTest extends Specification {
         setupTestProject(null, lib_SPRING_BOOT, lib_J_UNIT)
 
         when:
-        String consoleOutput = captureStdOutFromPlugin()
+        String consoleOutput = captureStdOutFromTaskExecution()
 
         then:
-        String expectedUnknownVersionGroup = getNormalizedResultGroup(PlainTextResultGroup.UNKNOWN_VERSION.headline, lib_J_UNIT, lib_SPRING_BOOT)
-        String expectedUnknownGroup = getNormalizedResultGroup(PlainTextResultGroup.UNKNOWN.headline, lib_J_UNIT, lib_SPRING_BOOT)
+        String unknownVersionGroup = getNormalizedResultGroup(PlainTextResultGroup.UNKNOWN_VERSION.headline, lib_J_UNIT, lib_SPRING_BOOT)
+        String unknownGroup = getNormalizedResultGroup(PlainTextResultGroup.UNKNOWN.headline, lib_J_UNIT, lib_SPRING_BOOT)
 
         String normalizedConsoleOutput = consoleOutput.normalize()
-        normalizedConsoleOutput.contains(expectedUnknownVersionGroup)
-        !normalizedConsoleOutput.contains(expectedUnknownGroup)
+        normalizedConsoleOutput.contains(unknownVersionGroup)
+        !normalizedConsoleOutput.contains(unknownGroup)
 
         String normalizedFileOutput = getNormalizedPlainTextResultFileOutput()
-        normalizedFileOutput.contains(expectedUnknownVersionGroup)
-        !normalizedFileOutput.contains(expectedUnknownGroup)
+        normalizedFileOutput.contains(unknownVersionGroup)
+        !normalizedFileOutput.contains(unknownGroup)
     }
 
     /**
@@ -134,7 +134,7 @@ class LibActivityPluginFunctionalTest extends Specification {
         setupTestProject(taskOptionString, LIB_LOGBACK_CORE, LIB_LOGBACK_CLASSIC)
 
         when:
-        String consoleOutput = captureStdOutFromPlugin()
+        String consoleOutput = captureStdOutFromTaskExecution()
 
         then:
         !consoleOutput.contains(LIB_LOGBACK_CORE)
@@ -156,7 +156,7 @@ class LibActivityPluginFunctionalTest extends Specification {
         setupTestProject(taskOptionString, LIB_COMMONS_LANG_3, LIB_LOGBACK_CORE, LIB_LOGBACK_CLASSIC)
 
         when:
-        String consoleOutput = captureStdOutFromPlugin()
+        String consoleOutput = captureStdOutFromTaskExecution()
 
         then:
         consoleOutput.contains(LIB_COMMONS_LANG_3)
@@ -193,7 +193,7 @@ class LibActivityPluginFunctionalTest extends Specification {
         setupTestProject(taskOptionString, LIB_COMMONS_LANG_3)
 
         when:
-        String consoleOutput = captureStdOutFromPlugin()
+        String consoleOutput = captureStdOutFromTaskExecution()
 
         then:
         consoleOutput.contains(LIB_COMMONS_LANG_3)
@@ -218,7 +218,7 @@ class LibActivityPluginFunctionalTest extends Specification {
         setupTestProject("outputFormat = 'JSON'", LIB_COMMONS_LANG_3)
 
         when:
-        String consoleOutput = captureStdOutFromPlugin()
+        String consoleOutput = captureStdOutFromTaskExecution()
 
         then:
         String expectedMavenIdentifier = gavJsonStringFromGavPlainText(LIB_COMMONS_LANG_3)
@@ -243,7 +243,7 @@ class LibActivityPluginFunctionalTest extends Specification {
         setupTestProject(taskOptionString, LIB_LOGBACK_CORE, LIB_LOGBACK_CLASSIC)
 
         when:
-        String consoleOutput = captureStdOutFromPlugin()
+        String consoleOutput = captureStdOutFromTaskExecution()
 
         then:
         String expectedLogbackCoreMavenIdentifier = gavJsonStringFromGavPlainText(LIB_LOGBACK_CORE)
@@ -308,7 +308,7 @@ class LibActivityPluginFunctionalTest extends Specification {
         thirdResult.task(TASK_NAME).outcome == TaskOutcome.SUCCESS
     }
 
-    private String captureStdOutFromPlugin() {
+    private String captureStdOutFromTaskExecution() {
         return checkLibActivity().output
     }
 
