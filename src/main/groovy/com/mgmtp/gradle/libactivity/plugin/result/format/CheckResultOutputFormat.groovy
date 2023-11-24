@@ -19,6 +19,6 @@ enum CheckResultOutputFormat {
 
     static CheckResultOutputFormat parse(String format) {
         return Optional.ofNullable(values().find { CheckResultOutputFormat writableFormat -> writableFormat.name().equalsIgnoreCase(format) })
-                .orElseThrow { new IOException("Invalid output format: ${format} ---> Valid options: ${values()}") }
+                .orElseThrow { new IllegalArgumentException("Invalid output format: ${format} ---> Valid options: ${values()}") }
     }
 }

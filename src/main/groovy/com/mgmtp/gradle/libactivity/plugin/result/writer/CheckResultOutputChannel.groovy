@@ -19,6 +19,6 @@ enum CheckResultOutputChannel {
 
     static CheckResultOutputChannel parse(String channel) {
         return Optional.ofNullable(values().find { CheckResultOutputChannel outputChannel -> outputChannel.name().equalsIgnoreCase(channel) })
-                .orElseThrow { new IOException("Invalid output channel: ${channel} ---> Valid options: ${values()}") }
+                .orElseThrow { new IllegalArgumentException("Invalid output channel: ${channel} ---> Valid options: ${values()}") }
     }
 }
