@@ -6,10 +6,15 @@ import groovy.transform.TupleConstructor
 /**
  * Check results have a name and a group of members.
  *
- * @param <G>  group type
+ * @param <GM>
+ *     group meta type
+ * @param <M>
+ *     group member type
+ * @param <G>
+ *     group type
  */
 @TupleConstructor(post = { NullCheck.ALL_PROPS.call(this) })
-abstract class AbstractCheckResult<G extends AbstractCheckResultGroup> {
+abstract class AbstractCheckResult<GM extends Enum<GM>, M, G extends CheckResultGroup<GM, M>> implements CheckResult<GM, M, G> {
 
     final String name
 

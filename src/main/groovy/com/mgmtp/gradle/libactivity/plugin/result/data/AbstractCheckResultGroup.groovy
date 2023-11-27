@@ -5,21 +5,26 @@ import groovy.transform.EqualsAndHashCode
 import groovy.transform.TupleConstructor
 
 /**
- * Check results groups have metadata and members. Simple comparability is achieved by order of meta enum instance.
+ * Check results groups have metadata and members.
+ * <p>
+ * Simple comparability is achieved by order of enumerated group meta information.
+ * </p>
  *
- * @param <M>   group member type
- * @param <GM>   group meta type
+ * @param <GM>
+ *     group meta type
+ * @param <M>
+ *     group member type
  */
 @EqualsAndHashCode
 @TupleConstructor(post = { NullCheck.ALL_PROPS.call(this) })
-abstract class AbstractCheckResultGroup<GM extends Enum<GM>, M> implements Comparable<AbstractCheckResultGroup<GM, M>> {
+abstract class AbstractCheckResultGroup<GM extends Enum<GM>, M> implements CheckResultGroup<GM, M> {
 
     final GM meta
 
     final Collection<M> members
 
     @Override
-    int compareTo(AbstractCheckResultGroup<GM, M> anotherGroup) {
+    int compareTo(CheckResultGroup<GM, M> anotherGroup) {
         return meta <=> anotherGroup.meta
     }
 }

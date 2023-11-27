@@ -1,10 +1,21 @@
 package com.mgmtp.gradle.libactivity.plugin.result.format.formatter.json
 
-import com.mgmtp.gradle.libactivity.plugin.result.data.AbstractCheckResult
-import com.mgmtp.gradle.libactivity.plugin.result.data.AbstractCheckResultGroup
+import com.mgmtp.gradle.libactivity.plugin.result.data.CheckResult
+import com.mgmtp.gradle.libactivity.plugin.result.data.CheckResultGroup
 import groovy.json.JsonBuilder
 
-abstract class AbstractJsonCheckResultFormatter<R extends AbstractCheckResult, G extends AbstractCheckResultGroup> implements JsonCheckResultFormatter<R> {
+/**
+ * @param <GM>
+ *     group meta type
+ * @param <M>
+ *     group member type
+ * @param <G>
+ *     group type
+ * @param <R>
+ *     check result type
+ */
+abstract class AbstractJsonCheckResultFormatter<GM extends Enum<GM>, M, G extends CheckResultGroup<GM, M>, R extends CheckResult<GM, M, G>>
+        implements JsonCheckResultFormatter<GM, M, G, R> {
 
     @Override
     JsonBuilder format(R checkResult) {

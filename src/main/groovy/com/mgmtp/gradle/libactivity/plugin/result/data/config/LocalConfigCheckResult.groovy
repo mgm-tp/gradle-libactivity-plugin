@@ -4,7 +4,7 @@ import com.mgmtp.gradle.libactivity.plugin.result.data.AbstractCheckResult
 import groovy.transform.TupleConstructor
 
 @TupleConstructor(includeSuperProperties = true, callSuper = true)
-class LocalConfigCheckResult extends AbstractCheckResult<LocalConfigCheckResultGroup> {
+class LocalConfigCheckResult extends AbstractCheckResult<LocalConfigCheckResultGroupMeta, String, LocalConfigCheckResultGroup> {
 
     static LocalConfigCheckResult fromGroups(Collection<LocalConfigCheckResultGroup> groups) {
         return new LocalConfigCheckResult('REDUNDANT LOCAL CONFIG ENTRIES', groups)

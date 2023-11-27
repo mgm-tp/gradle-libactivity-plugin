@@ -8,6 +8,6 @@ import groovy.transform.TupleConstructor
 class LibCheckResultGroup extends AbstractCheckResultGroup<LibCheckResultGroupMeta, Lib> {
 
     static LibCheckResultGroup fromGroupMetaAndTaggedLibs(LibCheckResultGroupMeta meta, Collection<Lib> taggedLibs) {
-        return new LibCheckResultGroup(meta, taggedLibs.findAll { Lib taggedLib -> taggedLib.tags.containsAll(meta.libTags) })
+        return new LibCheckResultGroup(meta, taggedLibs.findAll { Lib taggedLib -> taggedLib.tags.containsAll(meta.tags) })
     }
 }

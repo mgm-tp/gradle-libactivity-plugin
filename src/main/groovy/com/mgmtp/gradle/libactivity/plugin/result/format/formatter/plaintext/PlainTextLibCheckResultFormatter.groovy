@@ -3,8 +3,9 @@ package com.mgmtp.gradle.libactivity.plugin.result.format.formatter.plaintext
 import com.mgmtp.gradle.libactivity.plugin.data.lib.Lib
 import com.mgmtp.gradle.libactivity.plugin.result.data.lib.LibCheckResult
 import com.mgmtp.gradle.libactivity.plugin.result.data.lib.LibCheckResultGroup
+import com.mgmtp.gradle.libactivity.plugin.result.data.lib.LibCheckResultGroupMeta
 
-class PlainTextLibCheckResultFormatter extends AbstractPlainTextCheckResultFormatter<LibCheckResult, LibCheckResultGroup> {
+class PlainTextLibCheckResultFormatter extends AbstractPlainTextCheckResultFormatter<LibCheckResultGroupMeta, Lib, LibCheckResultGroup, LibCheckResult> {
 
     @Override
     String format(LibCheckResult checkResult) {
@@ -30,7 +31,7 @@ ${group.members.sort().collect { Lib lib -> lib.toString() + getDetailValueFromL
     }
 
     private static String getDetailValueFromLib(Lib lib, Lib.Detail groupDetail) {
-        String detailValue = lib.details.find { Map.Entry<Lib.Detail, ?> libDetail -> libDetail.key == groupDetail }?.value
+        String detailValue = lib.details.find { Map.Entry<Lib.Detail, ?> detail -> detail.key == groupDetail }?.value
         return detailValue ? " (${detailValue})" : ''
     }
 }

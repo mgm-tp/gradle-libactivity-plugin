@@ -1,7 +1,7 @@
 package com.mgmtp.gradle.libactivity.plugin.result.format.formatter.plaintext
 
-import com.mgmtp.gradle.libactivity.plugin.result.data.AbstractCheckResult
-import com.mgmtp.gradle.libactivity.plugin.result.data.AbstractCheckResultGroup
+import com.mgmtp.gradle.libactivity.plugin.result.data.CheckResult
+import com.mgmtp.gradle.libactivity.plugin.result.data.CheckResultGroup
 
 /**
  * Basic plaintext format with group members that can be represented merely by {@link Object#toString}.
@@ -21,8 +21,18 @@ import com.mgmtp.gradle.libactivity.plugin.result.data.AbstractCheckResultGroup
  * ----------------
  * .
  * .
+ *
+ * @param <GM>
+ *     group meta type
+ * @param <M>
+ *     group member type
+ * @param <G>
+ *     group type
+ * @param <R>
+ *     check result type
  */
-abstract class AbstractPlainTextCheckResultFormatter<R extends AbstractCheckResult, G extends AbstractCheckResultGroup> implements PlainTextCheckResultFormatter<R> {
+abstract class AbstractPlainTextCheckResultFormatter<GM extends Enum<GM>, M, G extends CheckResultGroup<GM, M>, R extends CheckResult<GM, M, G>>
+        implements PlainTextCheckResultFormatter<GM, M, G, R> {
 
     @Override
     String format(R checkResult) {

@@ -82,7 +82,7 @@ enum LibCheckResultGroupMeta {
 
     final Lib.Detail detail
 
-    final Collection<Lib.Tag> libTags
+    final Collection<Lib.Tag> tags
 
     final boolean isGroupWithUniqueMembers
 

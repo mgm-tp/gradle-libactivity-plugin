@@ -3,9 +3,10 @@ package com.mgmtp.gradle.libactivity.plugin.result.format.formatter.json
 import com.mgmtp.gradle.libactivity.plugin.data.lib.Lib
 import com.mgmtp.gradle.libactivity.plugin.result.data.lib.LibCheckResult
 import com.mgmtp.gradle.libactivity.plugin.result.data.lib.LibCheckResultGroup
+import com.mgmtp.gradle.libactivity.plugin.result.data.lib.LibCheckResultGroupMeta
 import groovy.json.JsonBuilder
 
-class JsonLibCheckResultFormatter extends AbstractJsonCheckResultFormatter<LibCheckResult, LibCheckResultGroup> {
+class JsonLibCheckResultFormatter extends AbstractJsonCheckResultFormatter<LibCheckResultGroupMeta, Lib, LibCheckResultGroup, LibCheckResult> {
 
     @Override
     JsonBuilder getJsonFormattedGroup(LibCheckResultGroup group) {

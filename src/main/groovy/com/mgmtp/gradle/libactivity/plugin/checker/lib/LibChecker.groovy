@@ -6,7 +6,8 @@ import com.mgmtp.gradle.libactivity.plugin.config.LocalConfig
 import com.mgmtp.gradle.libactivity.plugin.data.lib.Lib
 import com.mgmtp.gradle.libactivity.plugin.data.lib.MavenIdentifier
 import com.mgmtp.gradle.libactivity.plugin.logging.LazyLogger
-import com.mgmtp.gradle.libactivity.plugin.result.data.AbstractCheckResult
+import com.mgmtp.gradle.libactivity.plugin.result.data.CheckResult
+import com.mgmtp.gradle.libactivity.plugin.result.data.CheckResultGroup
 import com.mgmtp.gradle.libactivity.plugin.result.data.lib.LibCheckResult
 import com.mgmtp.gradle.libactivity.plugin.result.format.collector.FormattedCheckResultCollectorFactory
 import com.mgmtp.gradle.libactivity.plugin.result.format.formatter.CheckResultFormatterFactory
@@ -53,14 +54,18 @@ class LibChecker {
         return new LibChecker(globalConfig, localConfig, LocalConfigChecker.fromLocalConfig(localConfig))
     }
 
-    void checkLibMavenIdentifiers(Collection<MavenIdentifier> libMavenIdentifiers) {
+    <GM extends Enum<GM>, M, G extends CheckResultGroup<GM, M>> void checkLibMavenIdentifiers(Collection<MavenIdentifier> libMavenIdentifiers) {
+
         LOGGER.info('Starting lib check.')
+
         LOGGER.info { "Checking if any of ${libMavenIdentifiers.size()} libs are meant to be xcluded." }
         List<Lib> libs = libMavenIdentifiers.collect { MavenIdentifier mavenIdentifier -> Lib.fromMavenIdentifier(mavenIdentifier) }
                 .findAll { Lib lib -> isNotXcludedLib(lib) }
         LOGGER.info { "${libs.size()} libs passed xclusion filter." }
+
         libs.each { Lib lib -> tagLib(lib) }
-        List<AbstractCheckResult> checkResults = collectNonEmptyCheckResults(LibCheckResult.fromTaggedLibs(libs), localConfigChecker.result)
+        List<CheckResult<GM, M, G>> checkResults = collectNonEmptyCheckResults(LibCheckResult.fromTaggedLibs(libs), localConfigChecker.result)
+
         if (checkResults) {
             CheckResultWriterFactory.getWriter(localConfig).write(getWritableCheckResults(checkResults))
         } else {
@@ -261,9 +266,9 @@ class LibChecker {
         }
     }
 
-    private String getWritableCheckResults(Collection<AbstractCheckResult> checkResults) {
+    private <GM extends Enum<GM>, M, G extends CheckResultGroup<GM, M>> String getWritableCheckResults(Collection<CheckResult<GM, M, G>> checkResults) {
         return checkResults.stream()
-                .map { AbstractCheckResult result ->
+                .map { CheckResult<GM, M, G> result ->
                     LOGGER.info("Formatting check result '{}'", result.name)
                     CheckResultFormatterFactory.getFormatter(localConfig.outputFormat, result.class).format(result)
                 }
@@ -349,7 +354,7 @@ class LibChecker {
         }
     }
 
-    private static List<AbstractCheckResult> collectNonEmptyCheckResults(AbstractCheckResult... checkResults) {
-        return checkResults.findAll { AbstractCheckResult result -> result.groups }
+    private static <GM extends Enum<GM>, M, G extends CheckResultGroup<GM, M>> List<CheckResult<GM, M, G>> collectNonEmptyCheckResults(CheckResult<GM, M, G>... checkResults) {
+        return checkResults.findAll { CheckResult<GM, M, G> result -> result.groups }
     }
 }
