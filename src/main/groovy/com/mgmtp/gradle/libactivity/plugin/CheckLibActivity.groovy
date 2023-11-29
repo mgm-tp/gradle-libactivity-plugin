@@ -6,7 +6,6 @@ import com.mgmtp.gradle.libactivity.plugin.config.LocalConfig
 import com.mgmtp.gradle.libactivity.plugin.data.lib.MavenIdentifier
 import com.mgmtp.gradle.libactivity.plugin.logging.LazyLogger
 import com.mgmtp.gradle.libactivity.plugin.result.format.CheckResultOutputFormat
-import com.mgmtp.gradle.libactivity.plugin.result.writer.CheckResultOutputChannel
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.artifacts.*
@@ -34,10 +33,10 @@ class CheckLibActivity extends DefaultTask {
     String outputFormat = 'TXT'
 
     @Input
-    String outputChannel = 'DUAL'
+    String outputFileName = 'libactivityReport'
 
     @Input
-    String outputFileName = 'libactivityReport'
+    boolean withConsoleOutput = true
 
     @Input
     @Optional
@@ -62,8 +61,10 @@ class CheckLibActivity extends DefaultTask {
 
     @TaskAction
     void checkLibActivity() {
+
         LOGGER.info('Started task execution.')
         LOGGER.info { "${libMavenIdentifiers.size()} libs collected from '${project.name}' + submodules during configuration phase." }
+
         GlobalConfig globalConfig = GlobalConfig.builder()
                 .startOfCheckDate(startOfCheckDate)
                 .gitHubPropertiesPathRelativeToClasspath('/github/gitHubMappings.properties')
@@ -72,14 +73,15 @@ class CheckLibActivity extends DefaultTask {
                 .maxAgeLatestReleaseInMonths(maxAgeLatestReleaseInMonths)
                 .maxAgeCurrentVersionInMonths(maxAgeCurrentVersionInMonths)
                 .outputFormat(CheckResultOutputFormat.parse(outputFormat))
-                .outputChannel(CheckResultOutputChannel.parse(outputChannel))
                 .outputDir(outputDir)
                 .outputFileName(outputFileName)
+                .withConsoleOutput(withConsoleOutput)
                 .gitHubOauthToken(gitHubOauthToken)
                 .localGitHubMappings(localGitHubMappings)
                 .xcludes(xcludes)
                 .xcludePatterns(xcludePatterns)
                 .build()
+
         LibChecker.fromConfigBundle(globalConfig, localConfig).checkLibMavenIdentifiers(libMavenIdentifiers)
     }
 

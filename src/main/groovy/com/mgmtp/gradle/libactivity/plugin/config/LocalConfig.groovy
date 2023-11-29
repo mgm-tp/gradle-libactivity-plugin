@@ -17,7 +17,7 @@ class LocalConfig {
 
     final CheckResultOutputFormat outputFormat
 
-    final CheckResultOutputChannel outputChannel
+    final Collection<CheckResultOutputChannel> outputChannels
 
     final File outputFile
 
@@ -36,15 +36,14 @@ class LocalConfig {
             int maxAgeLatestReleaseInMonths,
             int maxAgeCurrentVersionInMonths,
             CheckResultOutputFormat outputFormat,
-            CheckResultOutputChannel outputChannel,
             File outputDir,
             String outputFileName,
+            boolean withConsoleOutput,
             String gitHubOauthToken,
             Map<String, String> localGitHubMappings,
             Collection<String> xcludes,
             Collection<String> xcludePatterns) {
         Objects.requireNonNull(outputFormat)
-        Objects.requireNonNull(outputChannel)
         Objects.requireNonNull(outputDir)
         Objects.requireNonNull(outputFileName)
         Objects.requireNonNull(localGitHubMappings)
@@ -54,8 +53,8 @@ class LocalConfig {
         this.maxAgeLatestReleaseInMonths = maxAgeLatestReleaseInMonths
         this.maxAgeCurrentVersionInMonths = maxAgeCurrentVersionInMonths
         this.outputFormat = outputFormat
-        this.outputChannel = outputChannel
-        this.outputFile = this.outputChannel == CheckResultOutputChannel.CONSOLE ? null : newBlankFile(outputDir, outputFileName, this.outputFormat)
+        this.outputFile = newBlankFile(outputDir, outputFileName, outputFormat)
+        outputChannels = withConsoleOutput ? [CheckResultOutputChannel.FILE, CheckResultOutputChannel.CONSOLE] : [CheckResultOutputChannel.FILE]
         this.gitHubOauthToken = gitHubOauthToken
         this.localGitHubMappings = new HashMap<>(localGitHubMappings)
         this.xcludes = new HashSet<>(xcludes)
@@ -76,7 +75,7 @@ class LocalConfig {
 maxAgeLatestReleaseInMonths: ${maxAgeLatestReleaseInMonths}
 maxAgeCurrentVersionInMonths: ${maxAgeCurrentVersionInMonths}
 outputFormat: ${outputFormat}
-outputChannel: ${outputChannel}
+outputChannels: ${outputChannels}
 outputFile: ${outputFile ?: 'NONE'}
 gitHubOauthToken: ${gitHubOauthToken ? 'YES' : 'NONE'}
 localGitHubMappings: ${localGitHubMappings.size()}x

@@ -11,6 +11,8 @@ import com.mgmtp.gradle.libactivity.plugin.result.data.CheckResultGroup
 import com.mgmtp.gradle.libactivity.plugin.result.data.lib.LibCheckResult
 import com.mgmtp.gradle.libactivity.plugin.result.format.collector.FormattedCheckResultCollectorFactory
 import com.mgmtp.gradle.libactivity.plugin.result.format.formatter.CheckResultFormatterFactory
+import com.mgmtp.gradle.libactivity.plugin.result.writer.CheckResultOutputChannel
+import com.mgmtp.gradle.libactivity.plugin.result.writer.CheckResultWriter
 import com.mgmtp.gradle.libactivity.plugin.result.writer.CheckResultWriterFactory
 import com.mgmtp.gradle.libactivity.plugin.util.NullCheck
 import groovy.json.JsonSlurper
@@ -64,10 +66,12 @@ class LibChecker {
         LOGGER.info { "${libs.size()} libs passed xclusion filter." }
 
         libs.each { Lib lib -> tagLib(lib) }
-        List<CheckResult<GM, M, G>> checkResults = collectNonEmptyCheckResults(LibCheckResult.fromTaggedLibs(libs), localConfigChecker.result)
+        String checkResultsString = collectCheckResults(LibCheckResult.fromTaggedLibs(libs), localConfigChecker.result)
 
-        if (checkResults) {
-            CheckResultWriterFactory.getWriter(localConfig).write(getWritableCheckResults(checkResults))
+        if (checkResultsString) {
+            localConfig.outputChannels
+                    .collect { CheckResultOutputChannel channel -> CheckResultWriterFactory.getWriter(channel, localConfig) }
+                    .each { CheckResultWriter writer -> writer.write(checkResultsString) }
         } else {
             LOGGER.info('No check results.')
         }
@@ -266,15 +270,6 @@ class LibChecker {
         }
     }
 
-    private <GM extends Enum<GM>, M, G extends CheckResultGroup<GM, M>> String getWritableCheckResults(Collection<CheckResult<GM, M, G>> checkResults) {
-        return checkResults.stream()
-                .map { CheckResult<GM, M, G> result ->
-                    LOGGER.info("Formatting check result '{}'", result.name)
-                    CheckResultFormatterFactory.getFormatter(localConfig.outputFormat, result.class).format(result)
-                }
-                .collect(FormattedCheckResultCollectorFactory.getCollector(localConfig.outputFormat))
-    }
-
     private String getFormattedYearsSince(LocalDate localDate) {
         return String.format(Locale.US, '%.1f', localDate.until(globalConfig.startOfCheckDate).toTotalMonths() / 12.0)
     }
@@ -354,7 +349,17 @@ class LibChecker {
         }
     }
 
-    private static <GM extends Enum<GM>, M, G extends CheckResultGroup<GM, M>> List<CheckResult<GM, M, G>> collectNonEmptyCheckResults(CheckResult<GM, M, G>... checkResults) {
+    /**
+     * @return Check results collected in a string.
+     */
+    private <GM extends Enum<GM>, M, G extends CheckResultGroup<GM, M>> String collectCheckResults(CheckResult<GM, M, G>... checkResults) {
+
         return checkResults.findAll { CheckResult<GM, M, G> result -> result.groups }
+                .stream()
+                .map { CheckResult<GM, M, G> result ->
+                    LOGGER.info("Formatting check result '{}'", result.name)
+                    CheckResultFormatterFactory.getFormatter(localConfig.outputFormat, result.class).format(result)
+                }
+                .collect(FormattedCheckResultCollectorFactory.getCollector(localConfig.outputFormat))
     }
 }

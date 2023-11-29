@@ -238,7 +238,7 @@ class LibActivityPluginFunctionalTest extends Specification {
         given:
         String taskOptionString = """
             outputFormat = 'JSON'
-            outputChannel = 'FILE'
+            withConsoleOutput = false
         """
         setupTestProject(taskOptionString, LIB_LOGBACK_CORE, LIB_LOGBACK_CLASSIC)
 
@@ -315,7 +315,8 @@ class LibActivityPluginFunctionalTest extends Specification {
     private BuildResult checkLibActivity() {
         GradleRunner.create()
                 .withProjectDir(testProjectDir.toFile())
-                .withArguments(TASK_NAME)
+                .withArguments(TASK_NAME, '--stacktrace')
+                .withDebug(true)
                 .withPluginClasspath()
                 .build()
     }

@@ -9,15 +9,16 @@ import groovy.transform.options.Visibility
 @VisibilityOptions(Visibility.PRIVATE)
 class CheckResultWriterFactory {
 
-    static CheckResultWriter getWriter(LocalConfig localConfig) {
-        return localConfig.outputChannel == CheckResultOutputChannel.CONSOLE ? getConsoleWriter(localConfig) : getFileWriter(localConfig)
-    }
+    static CheckResultWriter getWriter(CheckResultOutputChannel checkResultOutputChannel, LocalConfig localConfig) {
 
-    private static CheckResultWriter getConsoleWriter(LocalConfig localConfig) {
-        return localConfig.outputChannel.writerClazz.getDeclaredConstructor().newInstance()
-    }
+        switch (checkResultOutputChannel) {
 
-    private static CheckResultWriter getFileWriter(LocalConfig localConfig) {
-        return localConfig.outputChannel.writerClazz.getDeclaredConstructor(File.class).newInstance(localConfig.outputFile)
+            case CheckResultOutputChannel.FILE:
+                return new CheckResultFileWriter(localConfig.outputFile)
+            case CheckResultOutputChannel.CONSOLE:
+                return new CheckResultConsoleWriter()
+            default:
+                throw new IllegalArgumentException("No writer registered for check result output channel ${checkResultOutputChannel}")
+        }
     }
 }

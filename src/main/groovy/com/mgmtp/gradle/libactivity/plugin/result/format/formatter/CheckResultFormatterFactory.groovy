@@ -19,30 +19,47 @@ class CheckResultFormatterFactory {
 
     static <F, GM extends Enum<GM>, M, G extends CheckResultGroup<GM, M>, R extends CheckResult> CheckResultFormatter<F, GM, M, G, R> getFormatter(
             CheckResultOutputFormat outputFormat, Class<CheckResult> checkResultClazz) {
-        return CheckResultOutputFormatter.getMatchingImplementingClazz(outputFormat, checkResultClazz).getDeclaredConstructor().newInstance()
+
+        CheckResultOutput checkResultOutput = CheckResultOutput.get(outputFormat, checkResultClazz)
+
+        switch (checkResultOutput) {
+
+            case CheckResultOutput.JSON_LIB_CHECK_RESULT:
+                return new JsonLibCheckResultFormatter()
+            case CheckResultOutput.JSON_LOCAL_CONFIG_CHECK_RESULT:
+                return new JsonLocalConfigCheckResultFormatter()
+            case CheckResultOutput.PLAIN_TEXT_LIB_CHECK_RESULT:
+                return new PlainTextLibCheckResultFormatter()
+            case CheckResultOutput.PLAIN_TEXT_LOCAL_CONFIG_CHECK_RESULT:
+                return new PlainTextLocalConfigCheckResultFormatter()
+            default:
+                throw new IllegalArgumentException("No formatter registered for check result output '${checkResultOutput}'")
+        }
     }
 
     @TupleConstructor
     @VisibilityOptions(Visibility.PRIVATE)
-    private static enum CheckResultOutputFormatter {
+    private static enum CheckResultOutput {
 
-        JSON_LIB_CHECK_RESULT_FORMATTER(JsonLibCheckResultFormatter.class, CheckResultOutputFormat.JSON, LibCheckResult.class),
-        JSON_LOCAL_CONFIG_CHECK_RESULT_FORMATTER(JsonLocalConfigCheckResultFormatter.class, CheckResultOutputFormat.JSON, LocalConfigCheckResult.class),
-        PLAIN_TEXT_LIB_CHECK_RESULT_FORMATTER(PlainTextLibCheckResultFormatter.class, CheckResultOutputFormat.TXT, LibCheckResult.class),
-        PLAIN_TEXT_LOCAL_CONFIG_CHECK_RESULT_FORMATTER(PlainTextLocalConfigCheckResultFormatter.class, CheckResultOutputFormat.TXT, LocalConfigCheckResult.class)
+        JSON_LIB_CHECK_RESULT(CheckResultOutputFormat.JSON, LibCheckResult.class),
+        JSON_LOCAL_CONFIG_CHECK_RESULT(CheckResultOutputFormat.JSON, LocalConfigCheckResult.class),
+        PLAIN_TEXT_LIB_CHECK_RESULT(CheckResultOutputFormat.TXT, LibCheckResult.class),
+        PLAIN_TEXT_LOCAL_CONFIG_CHECK_RESULT(CheckResultOutputFormat.TXT, LocalConfigCheckResult.class)
 
-        Class<CheckResultFormatter> implementingClazz
         CheckResultOutputFormat outputFormat
         Class<CheckResult> checkResultClazz
 
-        private static Class<CheckResultFormatter> getMatchingImplementingClazz(CheckResultOutputFormat outputFormat, Class<CheckResult> checkResultClazz) {
+        private static CheckResultOutput get(CheckResultOutputFormat outputFormat, Class<CheckResult> checkResultClazz) {
 
-            return Arrays.stream(values()).filter { CheckResultOutputFormatter outputFormatter ->
-                outputFormatter.outputFormat == outputFormat && outputFormatter.checkResultClazz == checkResultClazz
+            CheckResultOutput checkResultOutput = values().find { CheckResultOutput checkResultOutput ->
+                checkResultOutput.outputFormat == outputFormat && checkResultOutput.checkResultClazz == checkResultClazz
             }
-                    .map { CheckResultOutputFormatter outputFormatter -> outputFormatter.implementingClazz }
-                    .findFirst()
-                    .orElseThrow { new IllegalArgumentException("No formatter implementation available for output format '${outputFormat}' and check result class '${checkResultClazz}'") }
+
+            if (checkResultOutput) {
+                return checkResultOutput
+            }
+
+            throw new IllegalArgumentException("No check result output available for format '${outputFormat}' and result class '${checkResultClazz}'")
         }
     }
 }
