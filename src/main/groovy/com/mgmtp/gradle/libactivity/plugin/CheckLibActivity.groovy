@@ -13,6 +13,8 @@ import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependencyCo
 import org.gradle.api.tasks.*
 
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZoneOffset
 
 @CacheableTask
 class CheckLibActivity extends DefaultTask {
@@ -21,13 +23,21 @@ class CheckLibActivity extends DefaultTask {
     final Collection<MavenIdentifier> libMavenIdentifiers = collectExternalLibMavenIdentifiersFromTargetModuleAndSubmodules()
 
     @Input
-    int maxAgeLatestReleaseInMonths = 12
+    int maxDaysSinceLatestRelease = 365
 
     @Input
-    int maxAgeCurrentVersionInMonths = 60
+    int maxDaysSinceCurrentVersionRelease = 1095
 
+    /**
+     * We limit timestamp resolution to days because
+     * <ul>
+     *     <li>it is the unit of our time range</li>
+     *     <li>for the duration of the current UTC date Gradle's UP-TO-DATE check and caching will work on successive task
+     *         executions with the same configuration</li>
+     * </ul>
+     */
     @Input
-    final LocalDate startOfCheckDate = LocalDate.now()
+    final long startOfCheckEpochMilli = LocalDate.now(ZoneId.of(ZoneOffset.UTC.id)).toDate().toInstant().toEpochMilli()
 
     @Input
     String outputFormat = 'TXT'
@@ -66,12 +76,12 @@ class CheckLibActivity extends DefaultTask {
         LOGGER.info { "${libMavenIdentifiers.size()} libs collected from '${project.name}' + submodules during configuration phase." }
 
         GlobalConfig globalConfig = GlobalConfig.builder()
-                .startOfCheckDate(startOfCheckDate)
+                .startOfCheckEpochMilli(startOfCheckEpochMilli)
                 .gitHubPropertiesPathRelativeToClasspath('/github/gitHubMappings.properties')
                 .build()
         LocalConfig localConfig = LocalConfig.builder()
-                .maxAgeLatestReleaseInMonths(maxAgeLatestReleaseInMonths)
-                .maxAgeCurrentVersionInMonths(maxAgeCurrentVersionInMonths)
+                .maxDaysSinceLatestRelease(maxDaysSinceLatestRelease)
+                .maxDaysSinceCurrentVersionRelease(maxDaysSinceCurrentVersionRelease)
                 .outputFormat(CheckResultOutputFormat.parse(outputFormat))
                 .outputDir(outputDir)
                 .outputFileName(outputFileName)

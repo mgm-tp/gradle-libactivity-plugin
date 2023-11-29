@@ -6,14 +6,12 @@ import groovy.transform.TupleConstructor
 import groovy.transform.VisibilityOptions
 import groovy.transform.options.Visibility
 
-import java.time.LocalDate
-
 /** Contains properties that come from within the plugin and are not meant to be set by the user. */
 @TupleConstructor(post = { NullCheck.ALL_PROPS.call(this) })
 @VisibilityOptions(Visibility.PRIVATE)
 class GlobalConfig {
 
-    final LocalDate startOfCheckDate
+    final long startOfCheckEpochMilli
 
     final Map<String, String> gitHubMappings
 
@@ -44,12 +42,12 @@ class GlobalConfig {
     @VisibilityOptions(Visibility.PRIVATE)
     static class GlobalConfigBuilder {
 
-        private LocalDate startOfCheckDate
+        private long startOfCheckEpochMilli
 
         private String gitHubPropertiesPathRelativeToClasspath
 
-        GlobalConfigBuilder startOfCheckDate(LocalDate startOfCheckDate) {
-            this.startOfCheckDate = startOfCheckDate
+        GlobalConfigBuilder startOfCheckEpochMilli(long startOfCheckEpochMilli) {
+            this.startOfCheckEpochMilli = startOfCheckEpochMilli
             return this
         }
 
@@ -60,7 +58,7 @@ class GlobalConfig {
 
         GlobalConfig build() {
             LOGGER.info('Initializing global config.')
-            GlobalConfig globalConfig = new GlobalConfig(startOfCheckDate, initGitHubMappings(gitHubPropertiesPathRelativeToClasspath))
+            GlobalConfig globalConfig = new GlobalConfig(startOfCheckEpochMilli, initGitHubMappings(gitHubPropertiesPathRelativeToClasspath))
             LOGGER.info('Global config complete: {}', globalConfig)
             return globalConfig
         }
@@ -69,7 +67,7 @@ class GlobalConfig {
     @Override
     String toString() {
         """
-startOfCheckDate: ${startOfCheckDate}
+startOfCheckEpochMilli: ${startOfCheckEpochMilli}
 gitHubMappings: ${gitHubMappings.size()} entries"""
     }
 }

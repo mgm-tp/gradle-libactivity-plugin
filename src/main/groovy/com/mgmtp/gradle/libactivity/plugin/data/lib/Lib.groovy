@@ -67,8 +67,8 @@ class Lib implements Comparable<Lib> {
     enum Detail {
 
         NUM_COMMITS('number of commits'),
-        LATEST_RELEASE_AGE('years since latest release'),
-        VERSION_AGE('version age in years'),
+        LATEST_RELEASE_AGE('days since latest release'),
+        VERSION_AGE('version age in days'),
         NEW_ADDRESS('new address')
 
         final String description

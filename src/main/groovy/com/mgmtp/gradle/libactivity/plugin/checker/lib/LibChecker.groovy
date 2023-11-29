@@ -27,7 +27,7 @@ import org.jsoup.HttpStatusException
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
-import java.time.LocalDate
+import java.time.*
 import java.util.concurrent.ThreadLocalRandom
 
 @TupleConstructor(post = { NullCheck.ALL_PROPS.call(this) })
@@ -39,6 +39,8 @@ class LibChecker {
     final LocalConfig localConfig
 
     final LocalConfigChecker localConfigChecker
+
+    final TimeBounds timeBounds
 
     private final OkHttpClient okHttpClient = new OkHttpClient()
 
@@ -53,7 +55,7 @@ class LibChecker {
     }
 
     static LibChecker fromConfigBundle(GlobalConfig globalConfig, LocalConfig localConfig) {
-        return new LibChecker(globalConfig, localConfig, LocalConfigChecker.fromLocalConfig(localConfig))
+        return new LibChecker(globalConfig, localConfig, LocalConfigChecker.fromLocalConfig(localConfig), TimeBounds.fromConfigBundle(globalConfig, localConfig))
     }
 
     <GM extends Enum<GM>, M, G extends CheckResultGroup<GM, M>> void checkLibMavenIdentifiers(Collection<MavenIdentifier> libMavenIdentifiers) {
@@ -79,6 +81,7 @@ class LibChecker {
 
     /** xcludes are check prior to xcludePatterns. */
     private boolean isNotXcludedLib(Lib lib) {
+
         String groupArtifactTuple = lib.mavenIdentifier.groupId + ':' + lib.mavenIdentifier.artifactId
         Optional<String> matchedXcludePattern = Optional.empty()
         Optional<String> matchedXcludeItem = localConfig.xcludes.stream()
@@ -87,8 +90,11 @@ class LibChecker {
                     xclude == groupArtifactTuple
                 }
                 .findFirst()
+
         matchedXcludeItem.ifPresent { String xclude -> localConfigChecker.markXcludeAsUsed(xclude) }
+
         if (!matchedXcludeItem) {
+
             matchedXcludePattern = localConfig.xcludePatterns.stream()
                     .filter { String pattern ->
                         LOGGER.debug("Checking lib '{}' against Xclude Pattern '{}'", lib, pattern)
@@ -97,12 +103,15 @@ class LibChecker {
                     .findFirst()
             matchedXcludePattern.ifPresent { String pattern -> localConfigChecker.markXcludePatternAsUsed(pattern) }
         }
+
         return !matchedXcludeItem && !matchedXcludePattern
     }
 
     /** Tag every lib based on Sonatype response. If release outdated collect more tags. */
     private void tagLib(Lib lib) {
+
         tagLibViaSonatypeQuery(lib)
+
         if (Lib.Tag.OUTDATED_RELEASE in lib.tags) {
             tagApparentlyInactiveLib(lib)
         }
@@ -111,6 +120,7 @@ class LibChecker {
     private void tagLibViaSonatypeQuery(Lib lib) {
 
         LOGGER.info("Checking lib '{}' via Sonatype API.", lib)
+
         HttpUrl httpUrl = new HttpUrl.Builder()
                 .scheme(HTTPS_SCHEME)
                 .host('search.maven.org')
@@ -124,19 +134,21 @@ class LibChecker {
         LOGGER.debug { GENERIC_REQUEST_LOG.call(httpUrl) }
 
         try {
+
             Object jsonObject = getJsonResponseFromRequestToUrl(httpUrl)
             List<String> versions = jsonObject.response.docs.v
             List<Long> timestamps = jsonObject.response.docs.timestamp
             Map<String, Long> sonatypeQueryResult = [versions, timestamps].transpose()
                     .collect { Object list -> (List<?>) list }
                     .collectEntries { List<?> list -> [(list[0] as String): list[1] as Long] }
-            if (!sonatypeQueryResult) {
-                LOGGER.info("Lib '{}' is unknown.", lib)
-                lib.tags.add(Lib.Tag.UNKNOWN)
-            } else {
+
+            if (sonatypeQueryResult) {
                 LOGGER.info("Checking current version age and latest release age for lib '{}'.", lib)
                 tagLibBasedOnCurrentVersionAge(lib, sonatypeQueryResult)
                 tagLibBasedOnLatestReleaseAge(lib, timestamps.first())
+            } else {
+                LOGGER.info("Lib '{}' is unknown.", lib)
+                lib.tags.add(Lib.Tag.UNKNOWN)
             }
         } catch (HttpStatusException e) {
             tagLibBasedOnInvalidHttpResponse(lib, e)
@@ -148,13 +160,16 @@ class LibChecker {
     }
 
     private void tagLibBasedOnCurrentVersionAge(Lib lib, Map<String, Long> sonatypeQueryResult) {
+
         if (sonatypeQueryResult.containsKey(lib.mavenIdentifier.version)) {
-            LocalDate earliestPossibleVersionReleaseDate = globalConfig.startOfCheckDate.minusMonths(localConfig.maxAgeCurrentVersionInMonths)
-            LocalDate libVersionReleaseDate = getLocalDateFromUnixMillis(sonatypeQueryResult[lib.mavenIdentifier.version])
-            if (libVersionReleaseDate.isBefore(earliestPossibleVersionReleaseDate)) {
+
+            long libVersionReleaseEpochMilli = sonatypeQueryResult[lib.mavenIdentifier.version]
+
+            if (libVersionReleaseEpochMilli < timeBounds.earliestPossibleCurrentVersionReleaseEpochMilli) {
+
                 LOGGER.info("Lib '{}' has outdated version.", lib)
                 lib.tags.add(Lib.Tag.OUTDATED_VERSION)
-                lib.details.put(Lib.Detail.VERSION_AGE, getFormattedYearsSince(libVersionReleaseDate))
+                lib.details.put(Lib.Detail.VERSION_AGE, getFormattedDaysSince(libVersionReleaseEpochMilli))
             }
         } else {
             LOGGER.info("Lib '{}' has unknown version.", lib)
@@ -162,13 +177,13 @@ class LibChecker {
         }
     }
 
-    private void tagLibBasedOnLatestReleaseAge(Lib lib, long latestReleaseTimestamp) {
-        LocalDate latestReleaseDate = getLocalDateFromUnixMillis(latestReleaseTimestamp)
-        LocalDate earliestPossibleLatestReleaseDate = globalConfig.startOfCheckDate.minusMonths(localConfig.maxAgeLatestReleaseInMonths)
-        if (latestReleaseDate.isBefore(earliestPossibleLatestReleaseDate)) {
+    private void tagLibBasedOnLatestReleaseAge(Lib lib, long latestReleaseEpochMilli) {
+
+        if (latestReleaseEpochMilli < timeBounds.earliestPossibleLatestReleaseEpochMilli) {
+
             LOGGER.info("Lib '{}' has outdated release.", lib)
             lib.tags.add(Lib.Tag.OUTDATED_RELEASE)
-            lib.details.put(Lib.Detail.LATEST_RELEASE_AGE, getFormattedYearsSince(latestReleaseDate))
+            lib.details.put(Lib.Detail.LATEST_RELEASE_AGE, getFormattedDaysSince(latestReleaseEpochMilli))
         } else {
             LOGGER.info("Latest release of lib '{}' is OK.", lib)
             lib.tags.addAll(Lib.Tag.ACTIVE, Lib.Tag.RELEASE_OK)
@@ -183,51 +198,58 @@ class LibChecker {
      * If a local GitHub mapping is equal to a global one it will be reported redundant since there is no added value.
      */
     private void tagApparentlyInactiveLib(Lib lib) {
+
         String gitHubMappingKey = lib.mavenIdentifier.groupId + '/' + lib.mavenIdentifier.artifactId
         Optional<String> localMappedLibNameOpt = Optional.ofNullable(localConfig.localGitHubMappings[gitHubMappingKey])
         Optional<String> globalMappedLibNameOpt = Optional.ofNullable(globalConfig.gitHubMappings[gitHubMappingKey])
         Optional<String> mappedLibNameOpt = localMappedLibNameOpt ?: globalMappedLibNameOpt
 
-        if (!mappedLibNameOpt) {
-            LOGGER.info("Cannot check lib '{}' on GitHub. No mapping available.", lib)
-            lib.tags.addAll(Lib.Tag.UNAVAILABLE_RESULT, Lib.Tag.NO_GITHUB_MAPPING)
-        } else {
+        if (mappedLibNameOpt) {
+
             String mappedLibName = mappedLibNameOpt.get()
-            if (!mappedLibName) {
+
+            if (mappedLibName) {
+                tagLibViaGitHubQuery(lib, mappedLibName)
+            } else {
                 LOGGER.info("Lib '{}' not hosted on GitHub.", lib)
                 lib.tags.addAll(Lib.Tag.INACTIVE, Lib.Tag.NO_GITHUB_HOSTING)
                 tagLibViaMvnRepositoryQuery(lib)
-            } else {
-                tagLibViaGitHubQuery(lib, mappedLibName)
             }
             if (localMappedLibNameOpt && localMappedLibNameOpt != globalMappedLibNameOpt) {
                 localConfigChecker.markLocalGitHubMappingKeyAsUsed(gitHubMappingKey)
             }
+        } else {
+            LOGGER.info("Cannot check lib '{}' on GitHub. No mapping available.", lib)
+            lib.tags.addAll(Lib.Tag.UNAVAILABLE_RESULT, Lib.Tag.NO_GITHUB_MAPPING)
         }
     }
 
     private void tagLibViaGitHubQuery(Lib lib, String mappedLibName) {
 
         LOGGER.info("Checking commits for apparantly inactive lib '{}' on GitHub.", lib)
+
         String[] mappedFragments = mappedLibName.split(':')
-        LocalDate earliestPossibleLatestReleaseDate = globalConfig.startOfCheckDate.minusMonths(localConfig.maxAgeLatestReleaseInMonths)
         HttpUrl.Builder httpUrlBuilder = new HttpUrl.Builder()
                 .scheme(HTTPS_SCHEME)
                 .host('api.github.com')
                 .addPathSegment('repos')
                 .addPathSegment(mappedFragments[0])
                 .addPathSegment('commits')
-                .addEncodedQueryParameter('since', "${earliestPossibleLatestReleaseDate}T00:00:00Z")
+                .addEncodedQueryParameter('since', timeBounds.earliestPossibleLatestReleaseIso8601String)
+
         if (mappedFragments.length > 1) {
             httpUrlBuilder.addQueryParameter('path', mappedFragments[1])
         }
+
         HttpUrl httpUrl = httpUrlBuilder.build()
         LOGGER.debug { GENERIC_REQUEST_LOG.call(httpUrl) }
 
         Map<String, String> gitHubAuthorizationHeader = localConfig.gitHubOauthToken ? ['Authorization': "token ${localConfig.gitHubOauthToken}"] : [:]
 
         try {
+
             int numCommitsInTimeFrame = getJsonResponseFromRequestToUrl(httpUrl, gitHubAuthorizationHeader).size()
+
             if (numCommitsInTimeFrame > 0) {
                 LOGGER.info("Found {} commits for '{}' on GitHub.", numCommitsInTimeFrame, lib)
                 lib.tags.addAll(Lib.Tag.ACTIVE, Lib.Tag.AT_LEAST_1_COMMIT)
@@ -248,6 +270,7 @@ class LibChecker {
     private static void tagLibViaMvnRepositoryQuery(Lib lib) {
 
         LOGGER.info("Checking move status for inactive '{}' via MvnRepository.", lib)
+
         HttpUrl httpUrl = new HttpUrl.Builder()
                 .scheme(HTTPS_SCHEME)
                 .host('mvnrepository.com')
@@ -258,6 +281,7 @@ class LibChecker {
         LOGGER.debug { GENERIC_REQUEST_LOG.call(httpUrl) }
 
         try {
+
             getNewLibAddressViaMvnRepository(httpUrl.toString()).ifPresent { newAddress ->
                 LOGGER.info("Lib '{}' moved to new address: '{}'.", lib, newAddress)
                 lib.tags.add(Lib.Tag.MOVED)
@@ -270,8 +294,8 @@ class LibChecker {
         }
     }
 
-    private String getFormattedYearsSince(LocalDate localDate) {
-        return String.format(Locale.US, '%.1f', localDate.until(globalConfig.startOfCheckDate).toTotalMonths() / 12.0)
+    private static String getFormattedDaysSince(long epochMilli) {
+        return String.format(Locale.US, '%,d', Duration.ofMillis(epochMilli).toDays())
     }
 
     /**
@@ -284,6 +308,7 @@ class LibChecker {
     private static Optional<String> getNewLibAddressViaMvnRepository(String url) {
 
         Thread.sleep(ThreadLocalRandom.current().nextInt(1000, 4001))
+
         List<String> newLinks = Jsoup.connect(url).userAgent('Mozilla').get().getElementsContainingOwnText('artifact was moved')
                 .collect { Element element -> element.getElementsByTag('a') }.flatten()
                 .collect { Object element -> ((Element) element).attr('href') }
@@ -300,18 +325,25 @@ class LibChecker {
     }
 
     private static void tagLibBasedOnInvalidHttpResponse(Lib lib, HttpStatusException httpStatusException) {
+
         int responseCode = httpStatusException.getStatusCode()
         String encodedUrl = httpStatusException.getUrl()
+
         switch (responseCode) {
+
             case 403:
+
                 if (encodedUrl.contains('api.github.com')) {
                     LOGGER.warn { GENERIC_INVALID_RESPONSE_LOG.call(responseCode, lib, encodedUrl) }
                     lib.tags.addAll(Lib.Tag.UNAVAILABLE_RESULT, Lib.Tag.GITHUB_RESPONSE_403)
                     break
                 }
+
                 LOGGER.error { GENERIC_INVALID_RESPONSE_LOG.call(responseCode, lib, encodedUrl) }
                 throw new IllegalStateException(httpStatusException)
+
             case 404:
+
                 if (encodedUrl.contains('search.maven.org')) {
                     LOGGER.info { GENERIC_INVALID_RESPONSE_LOG.call(responseCode, lib, encodedUrl) }
                     lib.tags.add(Lib.Tag.UNKNOWN)
@@ -319,15 +351,14 @@ class LibChecker {
                     LOGGER.warn { GENERIC_INVALID_RESPONSE_LOG.call(responseCode, lib, encodedUrl) }
                     lib.tags.addAll(Lib.Tag.UNAVAILABLE_RESULT, Lib.Tag.GITHUB_RESPONSE_404)
                 }
+
                 break
+
             default:
+
                 LOGGER.error { GENERIC_INVALID_RESPONSE_LOG.call(responseCode, lib, encodedUrl) }
                 throw new IllegalStateException(httpStatusException)
         }
-    }
-
-    private static LocalDate getLocalDateFromUnixMillis(long unixMillis) {
-        return LocalDate.ofEpochDay(Long.divideUnsigned(unixMillis, 86400000L))
     }
 
     private Object getJsonResponseFromRequestToUrl(HttpUrl httpUrl) {
@@ -342,9 +373,11 @@ class LibChecker {
         try (Response response = okHttpClient.newCall(requestBuilder.build()).execute()) {
 
             int responseCode = response.code()
+
             if (responseCode != 200) {
                 throw new HttpStatusException("Request '${httpUrl}' received invalid response ${responseCode}", responseCode, httpUrl.toString())
             }
+
             return new JsonSlurper().parse(response.body().byteStream())
         }
     }
@@ -361,5 +394,66 @@ class LibChecker {
                     CheckResultFormatterFactory.getFormatter(localConfig.outputFormat, result.class).format(result)
                 }
                 .collect(FormattedCheckResultCollectorFactory.getCollector(localConfig.outputFormat))
+    }
+
+    /**
+     * Holds time bounds that apply to all libs.
+     */
+    @TupleConstructor(post = { NullCheck.ALL_PROPS.call(this) })
+    @VisibilityOptions(Visibility.PRIVATE)
+    private static class TimeBounds {
+
+        final GlobalConfig globalConfig
+
+        final LocalConfig localConfig
+
+        private long earliestPossibleLatestReleaseEpochMilli = -1
+
+        private long earliestPossibleCurrentVersionReleaseEpochMilli = -1
+
+        private String earliestPossibleLatestReleaseIso8601String
+
+        static TimeBounds fromConfigBundle(GlobalConfig globalConfig, LocalConfig localConfig) {
+            return new TimeBounds(globalConfig, localConfig)
+        }
+
+        long getEarliestPossibleLatestReleaseEpochMilli() {
+
+            if (earliestPossibleLatestReleaseEpochMilli > -1) {
+                return earliestPossibleLatestReleaseEpochMilli
+            }
+            earliestPossibleLatestReleaseEpochMilli = globalConfig.startOfCheckEpochMilli - Duration.ofDays(localConfig.maxDaysSinceLatestRelease).toMillis()
+            // The epoch of 1970-01-01T00:00:00Z acts as reference. A tolerant configuration must not set meaningless time bounds.
+            if (earliestPossibleLatestReleaseEpochMilli < 0) {
+                earliestPossibleLatestReleaseEpochMilli = 0
+            }
+
+            return earliestPossibleLatestReleaseEpochMilli
+        }
+
+        long getEarliestPossibleCurrentVersionReleaseEpochMilli() {
+
+            if (earliestPossibleCurrentVersionReleaseEpochMilli > -1) {
+                return earliestPossibleCurrentVersionReleaseEpochMilli
+            }
+            earliestPossibleCurrentVersionReleaseEpochMilli = globalConfig.startOfCheckEpochMilli - Duration.ofDays(localConfig.maxDaysSinceCurrentVersionRelease).toMillis()
+            if (earliestPossibleCurrentVersionReleaseEpochMilli < 0) {
+                earliestPossibleCurrentVersionReleaseEpochMilli = 0
+            }
+
+            return earliestPossibleCurrentVersionReleaseEpochMilli
+        }
+
+        String getEarliestPossibleLatestReleaseIso8601String() {
+
+            if (earliestPossibleLatestReleaseIso8601String) {
+                return earliestPossibleLatestReleaseIso8601String
+            }
+
+            Instant instant = Instant.ofEpochSecond(getEarliestPossibleLatestReleaseEpochMilli())
+            earliestPossibleLatestReleaseIso8601String = ZonedDateTime.ofInstant(instant, ZoneId.of(ZoneOffset.UTC.id)).toString()
+
+            return earliestPossibleLatestReleaseIso8601String
+        }
     }
 }

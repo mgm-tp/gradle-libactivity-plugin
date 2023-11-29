@@ -11,9 +11,9 @@ import groovy.transform.builder.Builder
  */
 class LocalConfig {
 
-    final int maxAgeLatestReleaseInMonths
+    final int maxDaysSinceLatestRelease
 
-    final int maxAgeCurrentVersionInMonths
+    final int maxDaysSinceCurrentVersionRelease
 
     final CheckResultOutputFormat outputFormat
 
@@ -33,8 +33,8 @@ class LocalConfig {
 
     @Builder
     private LocalConfig(
-            int maxAgeLatestReleaseInMonths,
-            int maxAgeCurrentVersionInMonths,
+            int maxDaysSinceLatestRelease,
+            int maxDaysSinceCurrentVersionRelease,
             CheckResultOutputFormat outputFormat,
             File outputDir,
             String outputFileName,
@@ -43,6 +43,8 @@ class LocalConfig {
             Map<String, String> localGitHubMappings,
             Collection<String> xcludes,
             Collection<String> xcludePatterns) {
+        validateAmountOfDays('maxDaysSinceLatestRelease',maxDaysSinceLatestRelease)
+        validateAmountOfDays('maxDaysSinceCurrentVersionRelease',maxDaysSinceCurrentVersionRelease)
         Objects.requireNonNull(outputFormat)
         Objects.requireNonNull(outputDir)
         Objects.requireNonNull(outputFileName)
@@ -50,8 +52,8 @@ class LocalConfig {
         Objects.requireNonNull(xcludes)
         Objects.requireNonNull(xcludePatterns)
         LOGGER.info('Initializing local config.')
-        this.maxAgeLatestReleaseInMonths = maxAgeLatestReleaseInMonths
-        this.maxAgeCurrentVersionInMonths = maxAgeCurrentVersionInMonths
+        this.maxDaysSinceLatestRelease = maxDaysSinceLatestRelease
+        this.maxDaysSinceCurrentVersionRelease = maxDaysSinceCurrentVersionRelease
         this.outputFormat = outputFormat
         this.outputFile = newBlankFile(outputDir, outputFileName, outputFormat)
         outputChannels = withConsoleOutput ? [CheckResultOutputChannel.FILE, CheckResultOutputChannel.CONSOLE] : [CheckResultOutputChannel.FILE]
@@ -60,6 +62,12 @@ class LocalConfig {
         this.xcludes = new HashSet<>(xcludes)
         this.xcludePatterns = new HashSet<>(xcludePatterns)
         LOGGER.info { "Local config complete: ${this}" }
+    }
+
+    private static void validateAmountOfDays(String parameterName, int days) {
+        if(days < 1) {
+            throw new IllegalArgumentException("Amount of days must be positive. Received '${parameterName} = ${days} days'")
+        }
     }
 
     /** When file output is wanted we clear the target file for a fresh start */
@@ -72,8 +80,8 @@ class LocalConfig {
     @Override
     String toString() {
         """
-maxAgeLatestReleaseInMonths: ${maxAgeLatestReleaseInMonths}
-maxAgeCurrentVersionInMonths: ${maxAgeCurrentVersionInMonths}
+maxDaysSinceLatestRelease: ${maxDaysSinceLatestRelease}
+maxDaysSinceCurrentVersionRelease: ${maxDaysSinceCurrentVersionRelease}
 outputFormat: ${outputFormat}
 outputChannels: ${outputChannels}
 outputFile: ${outputFile ?: 'NONE'}
