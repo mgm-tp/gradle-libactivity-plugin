@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.mgmtp.gradle.libactivity.plugin'
-version '1.0.0'
+version '2.0.0-SNAPSHOT'
 
 gradlePlugin {
 
@@ -18,7 +18,7 @@ gradlePlugin {
             displayName = 'Lib Activity Plugin'
             description = 'Checks if a library is still active, i.e. for a predefined age limit either the latest library release is not older than the limit or there are commits for that library on GitHub not older than the limit.'
             implementationClass = 'com.mgmtp.gradle.libactivity.plugin.LibActivityPlugin'
-            tags.set(['activity', 'libraries', 'dependency-analysis', 'maintained-security', 'reporting-tool'])
+            tags.set(['active development', 'inactive', 'libraries', 'dependency-analysis', 'maintained-security', 'reporting-tool'])
         }
     }
 }
@@ -28,8 +28,10 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.squareup.okhttp3:okhttp:4.11.0'
-    implementation 'org.jsoup:jsoup:1.16.2'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'org.apache.commons:commons-lang3:3.14.0'
+    implementation 'org.apache.commons:commons-text:1.11.0'
+    implementation 'org.apache.commons:commons-jcs3-core:3.2'
     testImplementation 'org.spockframework:spock-core:2.3-groovy-3.0'
 }
 
